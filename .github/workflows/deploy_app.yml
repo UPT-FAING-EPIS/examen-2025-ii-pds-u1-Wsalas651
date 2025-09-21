@@ -95,4 +95,28 @@ jobs:
       uses: azure/CLI@v1
       with:
         inlineScript: |
-          az storage blob upload-batch --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --auth-mode key --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }} --destination '$web' --source ./src/Frontend/build
+          # Verificar que los secretos estén configurados
+          if [ -z "${{ secrets.STORAGE_ACCOUNT_NAME }}" ]; then
+            echo "Error: STORAGE_ACCOUNT_NAME secret is not configured"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.STORAGE_ACCOUNT_KEY }}" ]; then
+            echo "Error: STORAGE_ACCOUNT_KEY secret is not configured"
+            exit 1
+          fi
+          
+          # Verificar que el directorio build existe
+          if [ ! -d "./src/Frontend/build" ]; then
+            echo "Error: Frontend build directory not found"
+            exit 1
+          fi
+          
+          # Subir archivos al blob storage
+          az storage blob upload-batch \
+            --account-name "${{ secrets.STORAGE_ACCOUNT_NAME }}" \
+            --auth-mode key \
+            --account-key "${{ secrets.STORAGE_ACCOUNT_KEY }}" \
+            --destination '$web' \
+            --source ./src/Frontend/build \
+            --overwrite

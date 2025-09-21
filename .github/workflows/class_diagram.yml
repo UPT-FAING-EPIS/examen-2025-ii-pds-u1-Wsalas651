@@ -113,11 +113,10 @@ jobs:
         java -jar plantuml.jar docs/diagrams/class_diagram.puml
 
     - name: Upload Diagram Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: class-diagrams
-        path: |
-          docs/diagrams/
+        path: docs/diagrams/
         retention-days: 30
 
     - name: Commit and Push Diagrams
