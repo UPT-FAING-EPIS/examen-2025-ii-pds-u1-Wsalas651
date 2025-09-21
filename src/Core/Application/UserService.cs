@@ -108,7 +108,7 @@ namespace EventTicketing.Core.Application
             return await _userRepository.GetUsersByRoleAsync(role);
         }
 
-        public async Task AssignRoleToUserAsync(Guid userId, UserRole role)
+        public async Task UpdateUserRoleAsync(Guid userId, UserRole role)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
