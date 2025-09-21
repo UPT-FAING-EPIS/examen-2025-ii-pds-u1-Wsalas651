@@ -281,7 +281,13 @@ namespace EventTicketing.API.Controllers
         {
             try
             {
-                var userId = Guid.Parse(User.FindFirst("sub")?.Value);
+                var userIdClaim = User.FindFirst("sub")?.Value;
+                if (userIdClaim == null)
+                {
+                    return Unauthorized(new { Message = "No se pudo identificar al usuario." });
+                }
+
+                var userId = Guid.Parse(userIdClaim);
                 var ticket = await _ticketService.GetTicketByIdAsync(id);
 
                 // Verificar que el ticket pertenece al usuario o el usuario es un administrador

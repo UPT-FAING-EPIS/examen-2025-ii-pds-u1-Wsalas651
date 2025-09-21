@@ -154,9 +154,14 @@ namespace EventTicketing.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            if (!Enum.TryParse<UserRole>(updateRoleDto.Role, true, out var role))
+            {
+                return BadRequest(new { Message = $"El rol '{updateRoleDto.Role}' no es válido." });
+            }
+
             try
             {
-                await _userService.UpdateUserRoleAsync(id, updateRoleDto.Role);
+                await _userService.UpdateUserRoleAsync(id, role);
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
