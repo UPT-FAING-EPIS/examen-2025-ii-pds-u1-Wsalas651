@@ -71,10 +71,14 @@ jobs:
     - name: Export Terraform Outputs
       if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       run: |
-        echo "RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
-        echo "API_URL=$(terraform output -raw api_url)" >> $GITHUB_ENV
-        echo "FRONTEND_URL=$(terraform output -raw frontend_url)" >> $GITHUB_ENV
-        echo "POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)" >> $GITHUB_ENV
+        RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)
+        API_URL=$(terraform output -raw api_url)
+        FRONTEND_URL=$(terraform output -raw frontend_url)
+        POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)
+        echo "RESOURCE_GROUP_NAME=${RESOURCE_GROUP_NAME}" >> $GITHUB_ENV
+        echo "API_URL=${API_URL}" >> $GITHUB_ENV
+        echo "FRONTEND_URL=${FRONTEND_URL}" >> $GITHUB_ENV
+        echo "POSTGRES_SERVER_NAME=${POSTGRES_SERVER_NAME}" >> $GITHUB_ENV
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -98,3 +102,24 @@ jobs:
         name: API_URL
         value: ${{ env.API_URL }}
         pa_token: ${{ secrets.GH_PA_TOKEN }}
+
+
+### **2. Regenerar el Client Secret en Azure**
+1. Ve al **Azure Portal** → **Azure Active Directory** → **App registrations**
+2. Busca tu aplicación
+3. Ve a **Certificates & secrets**
+4. **Elimina** el secreto actual
+5. **Crea** un nuevo secreto
+6. **Copia el VALOR** (no el ID) del secreto
+7. **Actualiza** el secreto `AZURE_CREDENTIALS` en GitHub
+
+### **3. Migrar a OIDC (Recomendado)**
+Azure recomienda usar OIDC en lugar de secretos <mcreference link="https://github.com/azure/login#configure-a-service-principal-with-a-federated-credential-to-use-oidc-based-authentication" index="0">0</mcreference>:
+```yaml
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+```
