@@ -43,7 +43,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   administrator_password = var.postgres_admin_password
   storage_mb             = 32768
   sku_name               = "B_Standard_B1ms"
-  zone                   = "1"
+  # zone                   = "1"  # Comentar esta línea
 
   tags = {
     environment = "production"
