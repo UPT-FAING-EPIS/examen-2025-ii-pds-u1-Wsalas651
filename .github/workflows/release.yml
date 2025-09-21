@@ -1,12 +1,9 @@
-name: Build, Test and Release
+name: Create Release
 
 on:
   push:
-    branches: [ main ]
     tags:
-      - 'v2.1.0'  # v1.0.0, v2.1.3, etc.
-  pull_request:
-    branches: [ main ]
+      - 'v*.*.*'  # v1.0.0, v2.1.3, etc.
   workflow_dispatch:
     inputs:
       version:
@@ -39,7 +36,6 @@ jobs:
         dotnet restore
         dotnet build --no-restore --configuration Release
         dotnet test --no-build --configuration Release
-
     - name: Publish API
       run: dotnet publish src/API/API.csproj --no-build --configuration Release --output ./release/api
 
@@ -62,21 +58,28 @@ jobs:
           mkdir -p ../../release/frontend
           cp -r build/* ../../release/frontend/
         fi
-
     - name: Get Version
       id: version
       run: |
         if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        else
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "version=main-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
         fi
 
     - name: Create Release Archives
       run: |
-        cd release
-        zip -r ../event-ticketing-${{ steps.version.outputs.version }}.zip .
-
+        # Crear directorio release si no existe
+        mkdir -p release
+        # Solo crear ZIP si hay contenido
+        if [ -d "release" ] && [ "$(ls -A release)" ]; then
+          cd release
+          zip -r ../event-ticketing-${{ steps.version.outputs.version }}.zip .
+        else
+          echo "No release content to zip, skipping archive creation"
+        fi
     - name: Generate Changelog
       run: |
         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
@@ -89,7 +92,6 @@ jobs:
           echo "### Initial Release" >> changelog.md
           git log --pretty=format:"- %s" --no-merges >> changelog.md
         fi
-
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:

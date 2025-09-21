@@ -13,17 +13,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}  # Comentar esta línea
 
     steps:
     - uses: actions/checkout@v4
-
-    # Comentar toda la sección de Terraform outputs temporalmente
-    # - name: Setup Terraform
-    #   uses: hashicorp/setup-terraform@v3
-    #   with:
-    #     terraform_version: "1.5.0"
-    #     terraform_wrapper: false
 
     - name: Login to Azure
       uses: azure/login@v1
@@ -32,33 +24,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    # Comentar la sección de Get Infrastructure Outputs
-    # - name: Get Infrastructure Outputs
-    #   run: |
-    #     cd terraform
-    #     terraform init
-    #     API_URL=$(terraform output -raw api_url)
-        FRONTEND_URL=$(terraform output -raw frontend_url)
-        RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)
-        POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)
-        
-        # Establecer variables de entorno
-        echo "API_URL=${API_URL}" >> $GITHUB_ENV
-        echo "FRONTEND_URL=${FRONTEND_URL}" >> $GITHUB_ENV
-        echo "RESOURCE_GROUP_NAME=${RESOURCE_GROUP_NAME}" >> $GITHUB_ENV
-        echo "POSTGRES_SERVER_NAME=${POSTGRES_SERVER_NAME}" >> $GITHUB_ENV
-        
-        echo "Infrastructure outputs retrieved successfully"
-        echo "API URL: ${API_URL}"
-        echo "Frontend URL: ${FRONTEND_URL}"
-      shell: bash
-      env:
-        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-    # Configuración de .NET con caché
+    # Configuración de .NET
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -83,27 +49,7 @@ jobs:
     - name: Publish .NET App
       run: dotnet publish src/API/API.csproj -c Release -o publish
 
-    # Build Frontend
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Install Frontend Dependencies
-      run: |
-        cd src/Frontend
-        npm install
-
-    - name: Build Frontend
-      run: |
-        cd src/Frontend
-        npm run build
-      env:
-        REACT_APP_API_URL: ${{ env.API_URL }}
-        REACT_APP_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-
-    # Actualiza los archivos de configuración reemplazando los placeholders con secretos
+    # Actualizar configuración con secretos
     - name: Update appsettings.json
       uses: microsoft/variable-substitution@v1
       with:
@@ -112,52 +58,10 @@ jobs:
         ConnectionStrings.DefaultConnection: ${{ secrets.SUPABASE_CONNECTION_STRING }}
         Jwt.Key: ${{ secrets.JWT_SECRET_KEY }}
 
-    # Despliegue de la API en Azure Web App
+    # Despliegue usando el secret API_URL
     - name: Deploy API to Azure Web App
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: ./publish
-
-    # Despliegue del Frontend en Azure Storage
-    - name: Login to Azure
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      uses: azure/login@v1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Deploy Frontend to Azure Storage
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          # Verificar que los secretos estén configurados
-          if [ -z "${{ secrets.STORAGE_ACCOUNT_NAME }}" ]; then
-            echo "Error: STORAGE_ACCOUNT_NAME secret is not configured"
-            exit 1
-          fi
-          
-          if [ -z "${{ secrets.STORAGE_ACCOUNT_KEY }}" ]; then
-            echo "Error: STORAGE_ACCOUNT_KEY secret is not configured"
-            exit 1
-          fi
-          
-          # Verificar que el directorio build existe
-          if [ ! -d "./src/Frontend/build" ]; then
-            echo "Error: Frontend build directory not found"
-            exit 1
-          fi
-          
-          # Subir archivos al blob storage
-          az storage blob upload-batch \
-            --account-name "${{ secrets.STORAGE_ACCOUNT_NAME }}" \
-            --auth-mode key \
-            --account-key "${{ secrets.STORAGE_ACCOUNT_KEY }}" \
-            --destination '$web' \
-            --source ./src/Frontend/build \
-            --overwrite
