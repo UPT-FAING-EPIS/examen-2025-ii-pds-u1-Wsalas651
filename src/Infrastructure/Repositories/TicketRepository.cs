@@ -35,7 +35,7 @@ namespace EventTicketing.Infrastructure.Repositories
         public async Task<Ticket> GetTicketByCodeAsync(string ticketCode)
         {
             return await _dbSet
-                .FirstOrDefaultAsync(t => t.TicketCode == ticketCode);
+                .FirstOrDefaultAsync(t => t.Code == ticketCode);
         }
 
         public async Task<bool> IsSeatReservedAsync(Guid eventId, Guid seatId)

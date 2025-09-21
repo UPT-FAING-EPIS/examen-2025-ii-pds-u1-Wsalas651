@@ -47,7 +47,7 @@ namespace EventTicketing.Infrastructure.Data
             modelBuilder.Entity<Ticket>(entity =>
             {
                 entity.HasKey(t => t.Id);
-                entity.Property(t => t.TicketCode).IsRequired().HasMaxLength(20);
+                entity.Property(t => t.Code).IsRequired().HasMaxLength(20);
                 entity.Property(t => t.Price).HasColumnType("decimal(18,2)");
             });
 
