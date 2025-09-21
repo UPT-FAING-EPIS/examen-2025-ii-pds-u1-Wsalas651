@@ -26,10 +26,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET 8.0.x
-      uses: actions/setup-dotnet@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4  # Actualizar a v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.x  # Ya está correcto
 
     - name: Build and Test
       run: |
