@@ -108,12 +108,22 @@ namespace EventTicketing.Core.Application
             return await _userRepository.GetUsersByRoleAsync(role);
         }
 
+        public async Task AssignRoleToUserAsync(Guid userId, UserRole role)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"Usuario con ID {userId} no encontrado");
+        
+            user.AssignRole(role);
+            await _userRepository.UpdateAsync(user);
+        }
+
         public async Task UpdateUserRoleAsync(Guid userId, UserRole role)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new KeyNotFoundException($"Usuario con ID {userId} no encontrado");
-
+        
             user.AssignRole(role);
             await _userRepository.UpdateAsync(user);
         }

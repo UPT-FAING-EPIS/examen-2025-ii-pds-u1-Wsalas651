@@ -6,7 +6,7 @@ appsettings.Production.json
 .env.development.local
 .env.test.local
 .env.production.local
-
+terraform.tfvars
 # Directorios de compilación
 bin/
 obj/
