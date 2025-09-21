@@ -1,14 +1,9 @@
 name: Deploy Application to Azure
 
 on:
-  # workflow_run:
-  #   workflows: ["Deploy Infrastructure with Terraform"]
-  #   types:
-  #     - completed
-  #   branches: [ main ]
-  workflow_dispatch:  # Mantener solo este
-  push:               # Agregar este para que se ejecute en push
+  push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,17 +13,17 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
-    # Solo ejecutar si el workflow de infraestructura fue exitoso
     # if: ${{ github.event.workflow_run.conclusion == 'success' }}  # Comentar esta línea
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: "1.5.0"
-        terraform_wrapper: false  # Importante para obtener outputs
+    # Comentar toda la sección de Terraform outputs temporalmente
+    # - name: Setup Terraform
+    #   uses: hashicorp/setup-terraform@v3
+    #   with:
+    #     terraform_version: "1.5.0"
+    #     terraform_wrapper: false
 
     - name: Login to Azure
       uses: azure/login@v1
@@ -37,13 +32,12 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Get Infrastructure Outputs
-      run: |
-        cd terraform
-        terraform init
-        
-        # Obtener outputs de Terraform
-        API_URL=$(terraform output -raw api_url)
+    # Comentar la sección de Get Infrastructure Outputs
+    # - name: Get Infrastructure Outputs
+    #   run: |
+    #     cd terraform
+    #     terraform init
+    #     API_URL=$(terraform output -raw api_url)
         FRONTEND_URL=$(terraform output -raw frontend_url)
         RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)
         POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)
