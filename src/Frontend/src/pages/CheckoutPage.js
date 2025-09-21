@@ -7,7 +7,7 @@ import './CheckoutPage.css';
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removido porque no se usa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   

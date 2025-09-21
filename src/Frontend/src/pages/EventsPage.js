@@ -45,13 +45,19 @@ const EventsPage = () => {
       try {
         setLoading(true);
         
-        // Construir parámetros de filtrado
+        // Construir parámetros de filtrado directamente desde searchParams
         const params = {};
-        if (searchTerm) params.query = searchTerm;
-        if (selectedCategory) params.category = selectedCategory;
-        if (dateFilter) params.date = dateFilter;
-        if (priceRange.min) params.minPrice = priceRange.min;
-        if (priceRange.max) params.maxPrice = priceRange.max;
+        const query = searchParams.get('query');
+        const category = searchParams.get('category');
+        const date = searchParams.get('date');
+        const minPrice = searchParams.get('minPrice');
+        const maxPrice = searchParams.get('maxPrice');
+        
+        if (query) params.query = query;
+        if (category) params.category = category;
+        if (date) params.date = date;
+        if (minPrice) params.minPrice = minPrice;
+        if (maxPrice) params.maxPrice = maxPrice;
         
         const data = await eventService.getEvents(params);
         setEvents(data);

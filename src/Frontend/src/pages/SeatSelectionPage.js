@@ -9,7 +9,7 @@ const SeatSelectionPage = () => {
   const { eventId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removido porque no se usa
   
   // Obtener la cantidad de entradas de la navegación
   const quantity = location.state?.quantity || 1;
@@ -19,7 +19,7 @@ const SeatSelectionPage = () => {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [reservationTimer, setReservationTimer] = useState(null);
+  // const [reservationTimer, setReservationTimer] = useState(null); // Removido porque no se usa
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutos en segundos
 
   // Cargar evento y asientos disponibles
@@ -67,7 +67,7 @@ const SeatSelectionPage = () => {
       setSelectedSeats([]);
       setError('El tiempo de reserva ha expirado. Por favor, seleccione asientos nuevamente.');
     }
-  }, [timeLeft, selectedSeats]);
+  }, [timeLeft, selectedSeats, releaseSeats]); // Agregada dependencia releaseSeats
 
   // Formatear tiempo restante
   const formatTimeLeft = () => {
