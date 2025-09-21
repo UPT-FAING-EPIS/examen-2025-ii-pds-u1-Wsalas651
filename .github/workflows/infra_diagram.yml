@@ -1,0 +1,87 @@
+name: Generate Infrastructure Diagram
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+jobs:
+  generate-infra-diagram:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.3.0
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install diagram tools
+      run: |
+        pip install diagrams
+        pip install terraform-compliance
+        sudo apt-get update
+        sudo apt-get install -y graphviz
+
+    - name: Generate Infrastructure Diagram
+      run: |
+        cd terraform
+        # Crear script Python para generar diagrama
+        cat > generate_infra_diagram.py << 'EOF'
+        from diagrams import Diagram, Cluster, Edge
+        from diagrams.azure.compute import AppServices
+        from diagrams.azure.database import DatabaseForPostgresqlServers
+        from diagrams.azure.storage import StorageAccounts
+        from diagrams.azure.network import ApplicationGateway
+        from diagrams.azure.general import Resourcegroups
+        from diagrams.onprem.client import Users
+
+        with Diagram("Event Ticketing Infrastructure", show=False, direction="TB"):
+            users = Users("Users")
+            
+            with Cluster("Azure Resource Group"):
+                with Cluster("Frontend"):
+                    storage = StorageAccounts("Static Website\n(React App)")
+                
+                with Cluster("Backend"):
+                    api = AppServices("API Service\n(.NET Core)")
+                
+                with Cluster("Database"):
+                    db = DatabaseForPostgresqlServers("PostgreSQL\nFlexible Server")
+            
+            users >> Edge(label="HTTPS") >> storage
+            storage >> Edge(label="API Calls") >> api
+            api >> Edge(label="SQL") >> db
+        EOF
+        
+        python generate_infra_diagram.py
+
+    - name: Upload diagram artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: infrastructure-diagram
+        path: terraform/event_ticketing_infrastructure.png
+
+    - name: Commit diagram to repository
+      if: github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        mkdir -p docs/diagrams
+        cp terraform/event_ticketing_infrastructure.png docs/diagrams/
+        git add docs/diagrams/event_ticketing_infrastructure.png
+        git diff --staged --quiet || git commit -m "Update infrastructure diagram [skip ci]"
+        git push
