@@ -57,7 +57,6 @@ jobs:
         ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    # Apply the Terraform plan on main branch push or manual trigger
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       run: terraform apply -auto-approve -var-file="terraform.tfvars" -var="postgres_admin_username=${{ secrets.POSTGRES_ADMIN_USERNAME }}" -var="postgres_admin_password=${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
