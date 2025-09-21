@@ -54,6 +54,6 @@ namespace EventTicketing.Core.Interfaces
         /// <summary>
         /// Cuenta el número de entidades que cumplen con una condición
         /// </summary>
-        Task<int> CountAsync(Expression<Func<T, bool>> predicate = null);
+        Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
     }
 }

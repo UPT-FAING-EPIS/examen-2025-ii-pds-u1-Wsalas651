@@ -7,13 +7,13 @@ namespace EventTicketing.Core.Domain
     /// Representa un evento para el cual se pueden vender entradas
     /// </summary>
     public class Event
-    {
+        {
         public Guid Id { get; private set; }
-        public string Name { get; private set; }
-        public string Description { get; private set; }
+        public string? Name { get; private set; }
+        public string? Description { get; private set; }
         public DateTime Date { get; private set; }
-        public string Location { get; private set; }
-        public string Category { get; private set; }
+        public string? Location { get; private set; }
+        public string? Category { get; private set; }
         public int TotalCapacity { get; private set; }
         public decimal BasePrice { get; private set; }
         public bool HasNumberedSeats { get; private set; }
