@@ -89,6 +89,11 @@ namespace EventTicketing.Core.Application
             return await _ticketRepository.GetTicketsByUserAsync(userId);
         }
 
+        public async Task<Ticket> GetTicketByCodeAsync(string ticketCode)
+        {
+            return await _ticketRepository.GetTicketByCodeAsync(ticketCode);
+        }
+
         public async Task<bool> VerifyTicketAsync(string ticketCode)
         {
             var ticket = await _ticketRepository.GetTicketByCodeAsync(ticketCode);

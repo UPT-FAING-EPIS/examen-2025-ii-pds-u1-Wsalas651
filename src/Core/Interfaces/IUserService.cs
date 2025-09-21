@@ -49,5 +49,10 @@ namespace EventTicketing.Core.Interfaces
         /// Asigna un rol a un usuario
         /// </summary>
         Task AssignRoleToUserAsync(Guid userId, UserRole role);
+
+        /// <summary>
+        /// Actualiza el rol de un usuario
+        /// </summary>
+        Task UpdateUserRoleAsync(Guid userId, UserRole role);
     }
 }

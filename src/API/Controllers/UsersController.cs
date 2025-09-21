@@ -36,7 +36,7 @@ namespace EventTicketing.API.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     PhoneNumber = user.PhoneNumber,
-                    Role = user.Role
+                    Role = user.Role.ToString()
                 };
 
                 return Ok(userDto);
@@ -87,9 +87,9 @@ namespace EventTicketing.API.Controllers
             {
                 IEnumerable<User> users;
 
-                if (!string.IsNullOrWhiteSpace(role))
+                if (Enum.TryParse<UserRole>(role, true, out var userRole))
                 {
-                    users = await _userService.GetUsersByRoleAsync(role);
+                    users = await _userService.GetUsersByRoleAsync(userRole);
                 }
                 else
                 {
@@ -105,7 +105,7 @@ namespace EventTicketing.API.Controllers
                         Email = user.Email,
                         FirstName = user.FirstName,
                         LastName = user.LastName,
-                        Role = user.Role
+                        Role = user.Role.ToString()
                     });
                 }
 
@@ -132,7 +132,7 @@ namespace EventTicketing.API.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     PhoneNumber = user.PhoneNumber,
-                    Role = user.Role
+                    Role = user.Role.ToString()
                 };
 
                 return Ok(userDto);

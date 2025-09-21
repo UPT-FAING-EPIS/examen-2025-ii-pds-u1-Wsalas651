@@ -112,7 +112,8 @@ namespace EventTicketing.API.Controllers
         }
 
         [Authorize]
-        [HttpPost]
+        [HttpPost("purchase")]
+        [Authorize]
         public async Task<IActionResult> PurchaseTicket([FromBody] PurchaseTicketDto purchaseDto)
         {
             if (!ModelState.IsValid)
@@ -121,15 +122,15 @@ namespace EventTicketing.API.Controllers
             try
             {
                 var userId = Guid.Parse(User.FindFirst("sub")?.Value);
-                var ticket = new Ticket(purchaseDto.EventId, userId);
-
+                
+                Ticket ticket;
                 if (purchaseDto.SeatId.HasValue)
                 {
-                    await _ticketService.PurchaseTicketWithSeatAsync(ticket, purchaseDto.SeatId.Value);
+                    ticket = await _ticketService.PurchaseTicketAsync(purchaseDto.EventId, userId, purchaseDto.SeatId.Value);
                 }
                 else
                 {
-                    await _ticketService.PurchaseTicketAsync(ticket);
+                    ticket = await _ticketService.PurchaseTicketAsync(purchaseDto.EventId, userId);
                 }
 
                 return CreatedAtAction(nameof(GetTicket), new { id = ticket.Id }, new { Id = ticket.Id });
@@ -185,12 +186,20 @@ namespace EventTicketing.API.Controllers
         {
             try
             {
-                var ticket = await _ticketService.VerifyTicketAsync(code);
+                var ticket = await _ticketService.GetTicketByCodeAsync(code);
+                if (ticket == null)
+                {
+                    return Ok(new TicketVerificationDto { IsValid = false });
+                }
+                
                 var eventEntity = await _eventService.GetEventByIdAsync(ticket.EventId);
+                
+                // Verificar si el ticket es válido
+                bool isValid = ticket.IsValid(eventEntity.Date);
 
                 var verificationResult = new TicketVerificationDto
                 {
-                    IsValid = true,
+                    IsValid = isValid,
                     IsUsed = ticket.IsUsed,
                     EventName = eventEntity.Name,
                     EventDate = eventEntity.Date,
@@ -205,10 +214,6 @@ namespace EventTicketing.API.Controllers
 
                 return Ok(verificationResult);
             }
-            catch (KeyNotFoundException)
-            {
-                return Ok(new TicketVerificationDto { IsValid = false });
-            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = $"Error interno del servidor: {ex.Message}" });
@@ -221,7 +226,13 @@ namespace EventTicketing.API.Controllers
         {
             try
             {
-                await _ticketService.MarkTicketAsUsedAsync(code);
+                var ticket = await _ticketService.GetTicketByCodeAsync(code);
+                if (ticket == null)
+                {
+                    return NotFound(new { Message = "Ticket no encontrado" });
+                }
+                
+                await _ticketService.MarkTicketAsUsedAsync(ticket.Id);
                 return Ok(new { Success = true });
             }
             catch (KeyNotFoundException ex)

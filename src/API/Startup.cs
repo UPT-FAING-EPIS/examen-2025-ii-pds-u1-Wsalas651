@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using EventTicketing.API.Middleware;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventTicketing.API
 {
@@ -32,8 +33,7 @@ namespace EventTicketing.API
         {
             // Configurar DbContext
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-
+                options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
             // Configurar autenticación JWT
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>

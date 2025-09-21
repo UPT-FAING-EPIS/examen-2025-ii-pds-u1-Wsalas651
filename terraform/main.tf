@@ -96,9 +96,14 @@ resource "azurerm_linux_web_app" "api" {
   }
 
   app_settings = {
-    "ASPNETCORE_ENVIRONMENT"       = "Production"
-    "SUPABASE_CONNECTION_STRING"   = "Host=${azurerm_postgresql_flexible_server.postgres.fqdn};Database=${azurerm_postgresql_flexible_server_database.database.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password}"
-    "CORS_ORIGINS"                 = "https://${azurerm_storage_account.frontend.primary_web_host}"
+    "ASPNETCORE_ENVIRONMENT" = "Production"
+    "SUPABASE_CONNECTION_STRING" = join("", [
+      "Host=${azurerm_postgresql_flexible_server.postgres.fqdn};",
+      "Database=${azurerm_postgresql_flexible_server_database.database.name};",
+      "Username=${var.postgres_admin_username};",
+      "Password=${var.postgres_admin_password}"
+    ])
+    "CORS_ORIGINS" = "https://${azurerm_storage_account.frontend.primary_web_host}"
   }
 
   tags = {

@@ -49,5 +49,10 @@ namespace EventTicketing.Core.Interfaces
         /// Cancela un ticket y reembolsa al usuario
         /// </summary>
         Task CancelTicketAsync(Guid ticketId);
+
+        /// <summary>
+        /// Obtiene un ticket por su código
+        /// </summary>
+        Task<Ticket> GetTicketByCodeAsync(string ticketCode);
     }
 }
