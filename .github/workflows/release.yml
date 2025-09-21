@@ -27,15 +27,15 @@ jobs:
         fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v3  # ✅ Ya está correcto
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.x  # ✅ Ya está correcto
 
     - name: Build and Test
       run: |
-        dotnet restore examen-2025-ii-pds-u1-Wsalas651.sln
-        dotnet build examen-2025-ii-pds-u1-Wsalas651.sln --no-restore --configuration Release
-        dotnet test examen-2025-ii-pds-u1-Wsalas651.sln --no-build --configuration Release
+        dotnet restore
+        dotnet build --no-restore --configuration Release
+        dotnet test --no-build --configuration Release
 
     - name: Publish API
       run: dotnet publish src/API/API.csproj --no-build --configuration Release --output ./release/api

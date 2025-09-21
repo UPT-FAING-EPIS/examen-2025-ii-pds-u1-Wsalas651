@@ -1,18 +1,18 @@
 name: Generate and Publish Documentation
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - '.github/workflows/publish_doc.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-  workflow_dispatch:
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'src/**'
+  #     - 'docs/**'
+  #     - '.github/workflows/publish_doc.yml'
+  # pull_request:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'src/**'
+  #     - 'docs/**'
+  workflow_dispatch:  # Solo ejecución manual
 
 permissions:
   contents: read
