@@ -44,13 +44,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: src/Frontend/package-lock.json
 
     - name: Build Frontend
       working-directory: src/Frontend
       run: |
-        npm ci
+        npm install
         npm run build
         cp -r dist/* ../../../release/frontend/
 
