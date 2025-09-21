@@ -12,22 +12,6 @@ terraform {
   required_version = ">= 0.14.9"
 }
 
-variable "subscription_id" {
-  type        = string
-  description = "Azure subscription id"
-}
-
-variable "postgres_admin_username" {
-  type        = string
-  description = "Administrator username for PostgreSQL server"
-}
-
-variable "postgres_admin_password" {
-  type        = string
-  description = "Administrator password for PostgreSQL server"
-  sensitive   = true
-}
-
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
@@ -135,37 +119,6 @@ resource "azurerm_storage_account" "frontend" {
   static_website {
     index_document     = "index.html"
     error_404_document = "index.html"
-  }
-
-  tags = {
-    environment = "production"
-    project     = "event-ticketing"
-  }
-}
-
-# Create CDN Profile
-resource "azurerm_cdn_profile" "cdn" {
-  name                = "event-ticketing-cdn-${random_integer.ri.result}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku                 = "Standard_Microsoft"
-
-  tags = {
-    environment = "production"
-    project     = "event-ticketing"
-  }
-}
-
-# Create CDN Endpoint
-resource "azurerm_cdn_endpoint" "cdn_endpoint" {
-  name                = "event-ticketing-cdn-endpoint-${random_integer.ri.result}"
-  profile_name        = azurerm_cdn_profile.cdn.name
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  origin {
-    name      = "frontend"
-    host_name = azurerm_storage_account.frontend.primary_web_host
   }
 
   tags = {

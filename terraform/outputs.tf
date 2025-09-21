@@ -15,10 +15,7 @@ output "frontend_url" {
   description = "The URL of the static website hosting the frontend"
 }
 
-output "cdn_url" {
-  value       = "https://${azurerm_cdn_endpoint.cdn_endpoint.host_name}"
-  description = "The URL of the CDN endpoint"
-}
+
 
 output "postgres_server_name" {
   value       = azurerm_postgresql_flexible_server.postgres.name

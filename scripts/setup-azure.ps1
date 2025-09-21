@@ -7,8 +7,6 @@ param (
     [string]$appServicePlanName = "EventTicketingPlan",
     [string]$webAppName = "eticketing-app", # Modificado para evitar conflicto de nombres
     [string]$storageAccountName = "eventticketingstore",
-    [string]$cdnProfileName = "EventTicketingCDN",
-    [string]$cdnEndpointName = "event-ticketing-cdn",
     [string]$servicePrincipalName = "EventTicketingGitHubActions",
     [string]$postgresServerName = "eticketing-postgres", # Nuevo parámetro para servidor PostgreSQL
     [string]$postgresAdminUsername = "postgres", # Usuario administrador de PostgreSQL
@@ -129,64 +127,7 @@ function New-StorageAccountIfNotExists {
     return $storageAccount
 }
 
-# Función para crear un perfil de CDN y un endpoint
-function New-CDNProfileAndEndpointIfNotExists {
-    param (
-        [string]$cdnProfileName,
-        [string]$cdnEndpointName,
-        [string]$resourceGroupName,
-        [string]$storageAccountName,
-        [string]$location
-    )
-    
-    try {
-        $cdnProfile = Get-AzCdnProfile -Name $cdnProfileName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue
-        
-        if (-not $cdnProfile) {
-            Write-Host "Creando perfil de CDN '$cdnProfileName'..." -ForegroundColor Yellow
-            try {
-                # Usar Standard_Verizon en lugar de Standard_Akamai que está obsoleto
-                $cdnProfile = New-AzCdnProfile -Name $cdnProfileName -ResourceGroupName $resourceGroupName -Location $location -SkuName "Standard_Verizon"
-                Write-Host "Perfil de CDN creado exitosamente." -ForegroundColor Green
-            } catch {
-                Write-Host "Error al crear el perfil de CDN: $_" -ForegroundColor Red
-                Write-Host "Intenta con otro proveedor de CDN como 'Standard_Microsoft' o 'Standard_Verizon'." -ForegroundColor Yellow
-                return
-            }
-        } else {
-            Write-Host "El perfil de CDN '$cdnProfileName' ya existe." -ForegroundColor Green
-        }
-        
-        $cdnEndpoint = Get-AzCdnEndpoint -Name $cdnEndpointName -ProfileName $cdnProfileName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue
-        
-        if (-not $cdnEndpoint) {
-            $storageAccount = Get-AzStorageAccount -Name $storageAccountName -ResourceGroupName $resourceGroupName
-            $hostName = $storageAccount.PrimaryEndpoints.Web.Replace("https://", "").TrimEnd('/')
-            
-            Write-Host "Creando endpoint de CDN '$cdnEndpointName'..." -ForegroundColor Yellow
-            try {
-                # Corregido para usar correctamente los parámetros
-                $cdnEndpoint = New-AzCdnEndpoint -Name $cdnEndpointName -ProfileName $cdnProfileName -ResourceGroupName $resourceGroupName -OriginHostName $hostName -OriginName "origin1"
-                Write-Host "Endpoint de CDN creado exitosamente." -ForegroundColor Green
-            } catch {
-                Write-Host "Error al crear el endpoint de CDN: $_" -ForegroundColor Red
-                return
-            }
-            
-            # Obtener la URL del endpoint de CDN
-            $cdnEndpointUrl = "https://$cdnEndpointName.azureedge.net"
-            Write-Host "URL del endpoint de CDN: $cdnEndpointUrl" -ForegroundColor Cyan
-        } else {
-            Write-Host "El endpoint de CDN '$cdnEndpointName' ya existe." -ForegroundColor Green
-            
-            # Obtener la URL del endpoint de CDN
-            $cdnEndpointUrl = "https://$cdnEndpointName.azureedge.net"
-            Write-Host "URL del endpoint de CDN: $cdnEndpointUrl" -ForegroundColor Cyan
-        }
-    } catch {
-        Write-Host "Error en la configuración de CDN: $_" -ForegroundColor Red
-    }
-}
+
 
 # Función para crear un servidor PostgreSQL flexible
 function New-PostgreSQLFlexibleServerIfNotExists {
@@ -214,7 +155,7 @@ function New-PostgreSQLFlexibleServerIfNotExists {
                 -Name $serverName `
                 -Location $location `
                 -AdministratorUsername $adminUsername `
-                -AdministratorPassword $adminPassword `
+                -AdministratorLoginPassword (ConvertTo-SecureString $adminPassword -AsPlainText -Force) `
                 -Sku Standard_B1ms `
                 -Version 13
             
@@ -317,7 +258,6 @@ function Main {
     New-AppServicePlanIfNotExists -appServicePlanName $appServicePlanName -resourceGroupName $resourceGroupName -location $location
     New-WebAppIfNotExists -webAppName $webAppName -resourceGroupName $resourceGroupName -appServicePlanName $appServicePlanName
     $storageAccount = New-StorageAccountIfNotExists -storageAccountName $storageAccountName -resourceGroupName $resourceGroupName -location $location
-    New-CDNProfileAndEndpointIfNotExists -cdnProfileName $cdnProfileName -cdnEndpointName $cdnEndpointName -resourceGroupName $resourceGroupName -storageAccountName $storageAccountName -location $location
     $postgresInfo = New-PostgreSQLFlexibleServerIfNotExists -serverName $postgresServerName -resourceGroupName $resourceGroupName -location $location -adminUsername $postgresAdminUsername -databaseName $databaseName
     
     # Configurar la cadena de conexión en la Web App si se creó el servidor PostgreSQL
@@ -342,9 +282,6 @@ function Main {
     Write-Host "URL de la API: https://$webAppName.azurewebsites.net" -ForegroundColor White
     Write-Host "Cuenta de almacenamiento (Frontend): $storageAccountName" -ForegroundColor White
     Write-Host "URL del sitio web estático: $($storageAccount.PrimaryEndpoints.Web)" -ForegroundColor White
-    Write-Host "Perfil de CDN: $cdnProfileName" -ForegroundColor White
-    Write-Host "Endpoint de CDN: $cdnEndpointName" -ForegroundColor White
-    Write-Host "URL del CDN: https://$cdnEndpointName.azureedge.net" -ForegroundColor White
     if ($postgresInfo) {
         Write-Host "Servidor PostgreSQL: $postgresServerName" -ForegroundColor White
         Write-Host "Base de datos: $databaseName" -ForegroundColor White
@@ -356,8 +293,6 @@ function Main {
     Write-Host "   - AZURE_WEBAPP_NAME: $webAppName" -ForegroundColor White
     Write-Host "   - AZURE_STORAGE_ACCOUNT: $storageAccountName" -ForegroundColor White
     Write-Host "   - AZURE_STORAGE_KEY: (Obtén la clave desde el Portal de Azure)" -ForegroundColor White
-    Write-Host "   - AZURE_CDN_PROFILE_NAME: $cdnProfileName" -ForegroundColor White
-    Write-Host "   - AZURE_CDN_ENDPOINT_NAME: $cdnEndpointName" -ForegroundColor White
     Write-Host "   - RESOURCE_GROUP_NAME: $resourceGroupName" -ForegroundColor White
     if ($postgresInfo) {
         Write-Host "   - SUPABASE_CONNECTION_STRING: (Usa el valor guardado en postgres_connection.txt)" -ForegroundColor White

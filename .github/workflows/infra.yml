@@ -75,7 +75,6 @@ jobs:
         echo "RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
         echo "API_URL=$(terraform output -raw api_url)" >> $GITHUB_ENV
         echo "FRONTEND_URL=$(terraform output -raw frontend_url)" >> $GITHUB_ENV
-        echo "CDN_URL=$(terraform output -raw cdn_url)" >> $GITHUB_ENV
         echo "POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)" >> $GITHUB_ENV
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

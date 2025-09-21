@@ -108,11 +108,3 @@ jobs:
       with:
         inlineScript: |
           az storage blob upload-batch --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --auth-mode key --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }} --destination '$web' --source ./src/Frontend/build
-
-    # Purgar CDN para actualizar el contenido
-    - name: Purge CDN
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          az cdn endpoint purge --content-paths "/*" --profile-name ${{ secrets.CDN_PROFILE_NAME }} --name ${{ secrets.CDN_ENDPOINT_NAME }} --resource-group ${{ secrets.RESOURCE_GROUP_NAME }}
