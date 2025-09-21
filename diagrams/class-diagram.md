@@ -1,6 +1,6 @@
-﻿# Diagrama de Clases - Aplicacion Event Ticketing
+# Diagrama de Clases - Aplicación Event Ticketing
 
-Este diagrama muestra la estructura de clases para la aplicacion de venta de entradas para eventos, incluyendo las entidades principales y sus relaciones.
+Este diagrama muestra la estructura de clases para la aplicación de venta de entradas para eventos, incluyendo las entidades principales y sus relaciones.
 
 ## Diagrama de Clases Principal
 
@@ -205,8 +205,9 @@ classDiagram
     ITicketService --> ITicketRepository
 ```
 
-## Diagrama de Secuencia - Registro y AutenticaciÃ³n
+## Flujo de Operaciones Principales
 
+### 1. Registro y Autenticación de Usuarios
 ```mermaid
 sequenceDiagram
     participant U as Usuario
@@ -215,45 +216,32 @@ sequenceDiagram
     participant UR as UserRepository
     participant DB as Base de Datos
 
-    Note over U,DB: Proceso de Registro
     U->>AC: POST /api/auth/register
-    AC->>US: RegisterUserAsync(userData)
+    AC->>US: RegisterUserAsync(datos)
     US->>UR: IsEmailRegisteredAsync(email)
     UR->>DB: SELECT * FROM users WHERE email = ?
-    DB-->>UR: Resultado
-    UR-->>US: bool
-    
-    alt Email no registrado
-        US->>UR: AddAsync(newUser)
-        UR->>DB: INSERT INTO users
-        DB-->>UR: Usuario creado
-        UR-->>US: User
-        US-->>AC: User
-        AC-->>U: 201 Created + JWT Token
-    else Email ya existe
-        US-->>AC: Exception
-        AC-->>U: 400 Bad Request
-    end
+    DB-->>UR: resultado
+    UR-->>US: false
+    US->>UR: AddAsync(newUser)
+    UR->>DB: INSERT INTO users
+    DB-->>UR: usuario creado
+    UR-->>US: User
+    US-->>AC: User
+    AC-->>U: 201 Created + JWT Token
 
     Note over U,DB: Proceso de Login
     U->>AC: POST /api/auth/login
     AC->>US: AuthenticateAsync(email, password)
     US->>UR: GetUserByEmailAsync(email)
     UR->>DB: SELECT * FROM users WHERE email = ?
-    DB-->>UR: User data
+    DB-->>UR: userData
     UR-->>US: User
-    
-    alt Credenciales vÃ¡lidas
-        US-->>AC: User
-        AC-->>U: 200 OK + JWT Token
-    else Credenciales invÃ¡lidas
-        US-->>AC: null
-        AC-->>U: 401 Unauthorized
-    end
+    US->>US: VerifyPassword(password, hash)
+    US-->>AC: User (si es válido)
+    AC-->>U: 200 OK + JWT Token
 ```
 
-## Diagrama de Secuencia - Compra de Entradas
-
+### 2. Compra de Entradas
 ```mermaid
 sequenceDiagram
     participant U as Usuario
@@ -261,146 +249,147 @@ sequenceDiagram
     participant TS as TicketService
     participant ES as EventService
     participant TR as TicketRepository
-    participant ER as EventRepository
-    participant SR as SeatRepository
     participant DB as Base de Datos
 
     U->>TC: POST /api/tickets/purchase
     TC->>TS: PurchaseTicketAsync(userId, eventId, seatId)
-    
     TS->>ES: GetEventByIdAsync(eventId)
-    ES->>ER: GetByIdAsync(eventId)
-    ER->>DB: SELECT * FROM events WHERE id = ?
-    DB-->>ER: Event data
-    ER-->>ES: Event
     ES-->>TS: Event
-    
-    alt Evento existe y estÃ¡ disponible
-        TS->>SR: GetSeatByIdAsync(seatId)
-        SR->>DB: SELECT * FROM seats WHERE id = ?
-        DB-->>SR: Seat data
-        SR-->>TS: Seat
-        
-        alt Asiento disponible
-            TS->>SR: ReserveSeatAsync(seatId)
-            SR->>DB: UPDATE seats SET is_reserved = true
-            DB-->>SR: Success
-            
-            TS->>TR: AddAsync(newTicket)
-            TR->>DB: INSERT INTO tickets
-            DB-->>TR: Ticket created
-            TR-->>TS: Ticket
-            TS-->>TC: Ticket
-            TC-->>U: 201 Created + Ticket details
-        else Asiento no disponible
-            TS-->>TC: Exception
-            TC-->>U: 400 Bad Request
-        end
-    else Evento no existe
-        ES-->>TS: null
-        TS-->>TC: Exception
-        TC-->>U: 404 Not Found
-    end
+    TS->>TS: ValidateSeatAvailability(seatId)
+    TS->>TS: CalculatePrice(event, seat)
+    TS->>TR: AddAsync(newTicket)
+    TR->>DB: INSERT INTO tickets
+    DB-->>TR: ticket creado
+    TR-->>TS: Ticket
+    TS->>TS: UpdateSeatReservation(seatId)
+    TS-->>TC: Ticket
+    TC-->>U: 201 Created + TicketDto
 ```
 
-## Arquitectura por Capas
+### 3. Gestión de Eventos
+```mermaid
+sequenceDiagram
+    participant O as Organizador
+    participant EC as EventsController
+    participant ES as EventService
+    participant ER as EventRepository
+    participant DB as Base de Datos
+
+    O->>EC: POST /api/events
+    EC->>ES: CreateEventAsync(eventDto)
+    ES->>ES: ValidateEventData(eventDto)
+    ES->>ER: AddAsync(newEvent)
+    ER->>DB: INSERT INTO events
+    DB-->>ER: evento creado
+    ER-->>ES: Event
+    ES->>ES: CreateSeatsForEvent(event)
+    ES-->>EC: Event
+    EC-->>O: 201 Created + EventDto
+```
+
+## Patrones de Diseño Aplicados
+
+### 1. Repository Pattern
+- **IUserRepository / UserRepository**: Abstrae el acceso a datos de usuarios
+- **IEventRepository / EventRepository**: Maneja las operaciones de eventos
+- **ITicketRepository / TicketRepository**: Gestiona los tickets y compras
+- **Repository<T>**: Implementación genérica base
+
+### 2. Service Layer Pattern
+- **IUserService / UserService**: Lógica de negocio para usuarios
+- **IEventService / EventService**: Operaciones de negocio para eventos
+- **ITicketService / TicketService**: Procesos de compra y validación
+
+### 3. DTO Pattern
+- **UserDto, EventDto, TicketDto**: Transferencia de datos entre capas
+- **CreateEventDto, UpdateUserProfileDto**: DTOs específicos para operaciones
+
+### 4. Dependency Injection
+- Inyección de dependencias en controladores y servicios
+- Interfaces para desacoplar implementaciones
+
+### 5. Domain-Driven Design (DDD)
+- Entidades de dominio con lógica de negocio encapsulada
+- Validaciones de dominio en constructores y métodos
+
+## Principios SOLID Aplicados
+
+✅ **Single Responsibility**: Cada clase tiene una responsabilidad específica
+- User: Gestión de datos de usuario
+- Event: Lógica de eventos
+- Ticket: Operaciones de entradas
+- Seat: Manejo de asientos
+
+✅ **Open/Closed**: Extensible para nuevos tipos de eventos y métodos de pago
+- Interfaces permiten nuevas implementaciones
+- Enum UserRole permite agregar nuevos roles
+
+✅ **Liskov Substitution**: Las implementaciones pueden sustituir interfaces
+- Repository<T> puede ser sustituido por implementaciones específicas
+- Services implementan interfaces claramente definidas
+
+✅ **Interface Segregation**: Interfaces específicas por funcionalidad
+- IUserRepository, IEventRepository, ITicketRepository
+- IUserService, IEventService, ITicketService
+
+✅ **Dependency Inversion**: Dependencias a través de abstracciones
+- Controllers dependen de interfaces de servicios
+- Services dependen de interfaces de repositorios
+
+## Arquitectura de Capas
 
 ```mermaid
 graph TB
-    subgraph "Capa de PresentaciÃ³n"
-        A[Controllers]
-        B[DTOs]
-        C[Middleware]
+    subgraph "Presentation Layer"
+        REACT["React Frontend"]
+        API["API Controllers"]
     end
-    
-    subgraph "Capa de AplicaciÃ³n"
-        D[Services]
-        E[Interfaces de Servicios]
+
+    subgraph "Application Layer"
+        AUTH_SVC["User Service"]
+        EVENT_SVC["Event Service"]
+        TICKET_SVC["Ticket Service"]
     end
-    
-    subgraph "Capa de Dominio"
-        F[Entidades]
-        G[Value Objects]
-        H[Domain Services]
+
+    subgraph "Domain Layer"
+        USER["User Entity"]
+        EVENT["Event Entity"]
+        TICKET["Ticket Entity"]
+        SEAT["Seat Entity"]
     end
-    
-    subgraph "Capa de Infraestructura"
-        I[Repositories]
-        J[Data Context]
-        K[External Services]
+
+    subgraph "Infrastructure Layer"
+        USER_REPO["User Repository"]
+        EVENT_REPO["Event Repository"]
+        TICKET_REPO["Ticket Repository"]
+        EF_CONTEXT["EF Core Context"]
     end
-    
-    subgraph "Base de Datos"
-        L[(Supabase PostgreSQL)]
+
+    subgraph "Database Layer"
+        SUPABASE["Supabase PostgreSQL"]
     end
+
+    %% Connections
+    REACT --> API
+    API --> AUTH_SVC
+    API --> EVENT_SVC
+    API --> TICKET_SVC
     
-    A --> D
-    B --> A
-    C --> A
-    D --> E
-    E --> F
-    D --> I
-    I --> J
-    J --> L
-    K --> L
+    AUTH_SVC --> USER
+    EVENT_SVC --> EVENT
+    TICKET_SVC --> TICKET
+    TICKET_SVC --> SEAT
     
-    style A fill:#e1f5fe
-    style D fill:#f3e5f5
-    style F fill:#e8f5e8
-    style I fill:#fff3e0
+    AUTH_SVC --> USER_REPO
+    EVENT_SVC --> EVENT_REPO
+    TICKET_SVC --> TICKET_REPO
+    
+    USER_REPO --> EF_CONTEXT
+    EVENT_REPO --> EF_CONTEXT
+    TICKET_REPO --> EF_CONTEXT
+    
+    EF_CONTEXT --> SUPABASE
 ```
 
-## Patrones de Diseño Implementados
-
-### 1. Repository Pattern
-- **PropÃ³sito**: Encapsula la lÃ³gica de acceso a datos
-- **ImplementaciÃ³n**: `IUserRepository`, `IEventRepository`, `ITicketRepository`
-- **Beneficios**: SeparaciÃ³n de responsabilidades, testabilidad
-
-### 2. Service Layer Pattern
-- **PropÃ³sito**: Encapsula la lÃ³gica de negocio
-- **ImplementaciÃ³n**: `UserService`, `EventService`, `TicketService`
-- **Beneficios**: ReutilizaciÃ³n de cÃ³digo, mantenibilidad
-
-### 3. Data Transfer Object (DTO)
-- **PropÃ³sito**: Transferencia de datos entre capas
-- **ImplementaciÃ³n**: `UserDto`, `EventDto`, `TicketDto`
-- **Beneficios**: Desacoplamiento, control de datos expuestos
-
-### 4. Dependency Injection
-- **PropÃ³sito**: InversiÃ³n de control y gestiÃ³n de dependencias
-- **ImplementaciÃ³n**: Interfaces inyectadas en constructores
-- **Beneficios**: Testabilidad, flexibilidad, bajo acoplamiento
-
-### 5. Domain-Driven Design (DDD)
-- **PropÃ³sito**: Modelado del dominio de negocio
-- **ImplementaciÃ³n**: Entidades ricas, value objects, servicios de dominio
-- **Beneficios**: CÃ³digo expresivo, mantenibilidad
-
-## Principios SOLID
-
-### Single Responsibility Principle (SRP)
-- Cada clase tiene una Ãºnica responsabilidad
-- `UserService` solo maneja operaciones de usuario
-- `TicketService` solo maneja operaciones de tickets
-
-### Open/Closed Principle (OCP)
-- Clases abiertas para extensiÃ³n, cerradas para modificaciÃ³n
-- Uso de interfaces permite extensibilidad sin modificar cÃ³digo existente
-
-### Liskov Substitution Principle (LSP)
-- Las implementaciones pueden sustituir a sus interfaces
-- Cualquier implementaciÃ³n de `IUserRepository` puede usarse indistintamente
-
-### Interface Segregation Principle (ISP)
-- Interfaces especÃ­ficas y cohesivas
-- `IUserService`, `IEventService`, `ITicketService` son interfaces especializadas
-
-### Dependency Inversion Principle (DIP)
-- Dependencia de abstracciones, no de concreciones
-- Controllers dependen de interfaces de servicios, no de implementaciones concretas
-
 ---
-
-*Diagrama generado automaticamente para la aplicaciÃ³n Event Ticketing*
-*Fecha de generacion: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")*
+*Generado automáticamente el $(date)*
