@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { eventService } from '../services/eventService';
 import { ticketService } from '../services/ticketService';
-import { useAuth } from '../context/AuthContext';
 import './SeatSelectionPage.css';
 
 const SeatSelectionPage = () => {
   const { eventId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  // const { user } = useAuth(); // Removido porque no se usa
   
   // Obtener la cantidad de entradas de la navegación
   const quantity = location.state?.quantity || 1;
@@ -19,8 +17,19 @@ const SeatSelectionPage = () => {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // const [reservationTimer, setReservationTimer] = useState(null); // Removido porque no se usa
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutos en segundos
+
+  // Liberar asientos reservados - mover ANTES de los useEffect y usar useCallback
+  const releaseSeats = useCallback(async () => {
+    if (selectedSeats.length > 0) {
+      try {
+        const seatIds = selectedSeats.map(seat => seat.id);
+        await ticketService.releaseSeats(eventId, seatIds);
+      } catch (err) {
+        console.error('Error releasing seats:', err);
+      }
+    }
+  }, [selectedSeats, eventId]);
 
   // Cargar evento y asientos disponibles
   useEffect(() => {
@@ -51,7 +60,7 @@ const SeatSelectionPage = () => {
         releaseSeats();
       }
     };
-  }, [eventId]);
+  }, [eventId, releaseSeats, selectedSeats.length]);
 
   // Temporizador para la reserva
   useEffect(() => {
@@ -67,7 +76,7 @@ const SeatSelectionPage = () => {
       setSelectedSeats([]);
       setError('El tiempo de reserva ha expirado. Por favor, seleccione asientos nuevamente.');
     }
-  }, [timeLeft, selectedSeats, releaseSeats]); // Agregada dependencia releaseSeats
+  }, [timeLeft, selectedSeats, releaseSeats]); // Agregar releaseSeats y selectedSeats.length
 
   // Formatear tiempo restante
   const formatTimeLeft = () => {
@@ -134,18 +143,6 @@ const SeatSelectionPage = () => {
         setSeats(seatsData);
       } catch (error) {
         console.error('Error refreshing seats:', error);
-      }
-    }
-  };
-
-  // Liberar asientos reservados
-  const releaseSeats = async () => {
-    if (selectedSeats.length > 0) {
-      try {
-        const seatIds = selectedSeats.map(seat => seat.id);
-        await ticketService.releaseSeats(eventId, seatIds);
-      } catch (err) {
-        console.error('Error releasing seats:', err);
       }
     }
   };

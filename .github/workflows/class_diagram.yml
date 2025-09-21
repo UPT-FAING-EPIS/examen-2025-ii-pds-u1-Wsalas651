@@ -41,10 +41,7 @@ jobs:
         # Crear directorio para diagramas
         mkdir -p docs/diagrams
         
-        # Usar dotnet-depends como alternativa más estable
-        ~/.dotnet/tools/dotnet-depends --framework net8.0 --output docs/diagrams/dependencies.dgml src/
-        
-        # Crear un diagrama PlantUML básico manualmente
+        # Crear un diagrama PlantUML básico manualmente (sin usar dotnet-depends)
         cat > docs/diagrams/class_diagram.puml << 'EOF'
         @startuml
         !theme plain
