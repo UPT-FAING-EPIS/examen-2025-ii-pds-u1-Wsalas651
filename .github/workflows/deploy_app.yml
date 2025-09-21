@@ -47,32 +47,13 @@ jobs:
         restore-keys: ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
-      run: dotnet restore src/API/API.csproj
+      run: dotnet restore examen-2025-ii-pds-u1-Wsalas651.sln
 
     - name: Build
-      run: dotnet build src/API/API.csproj --no-restore --configuration Release
+      run: dotnet build examen-2025-ii-pds-u1-Wsalas651.sln --no-restore --configuration Release
 
     - name: Test
-      run: dotnet test tests --no-build --verbosity normal
-
-    # Configuración de Node.js con caché
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: src/Frontend/package-lock.json
-
-    - name: Install Frontend dependencies
-      run: cd src/Frontend && npm ci
-
-    - name: Build Frontend
-      run: cd src/Frontend && npm run build
-      env:
-        REACT_APP_API_URL: ${{ secrets.API_URL }}
-        REACT_APP_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        REACT_APP_USE_SUPABASE: ${{ secrets.USE_SUPABASE }}
+      run: dotnet test examen-2025-ii-pds-u1-Wsalas651.sln --no-build --verbosity normal
 
     - name: Publish .NET App
       run: dotnet publish src/API/API.csproj -c Release -o publish
