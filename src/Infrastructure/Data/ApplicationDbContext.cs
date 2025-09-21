@@ -21,6 +21,12 @@ namespace EventTicketing.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Configurar nombres de tabla en minúsculas para PostgreSQL
+            modelBuilder.Entity<Event>().ToTable("events");
+            modelBuilder.Entity<Ticket>().ToTable("tickets");
+            modelBuilder.Entity<User>().ToTable("users");
+            modelBuilder.Entity<Seat>().ToTable("seats");
+
             // Configuración de entidades
             modelBuilder.Entity<Event>(entity =>
             {
