@@ -1,12 +1,14 @@
 name: Deploy Application to Azure
 
 on:
-  workflow_run:
-    workflows: ["Deploy Infrastructure with Terraform"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["Deploy Infrastructure with Terraform"]
+  #   types:
+  #     - completed
+  #   branches: [ main ]
+  workflow_dispatch:  # Mantener solo este
+  push:               # Agregar este para que se ejecute en push
     branches: [ main ]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     # Solo ejecutar si el workflow de infraestructura fue exitoso
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}  # Comentar esta línea
 
     steps:
     - uses: actions/checkout@v4
