@@ -75,8 +75,11 @@ jobs:
         mkdir -p release
         # Solo crear ZIP si hay contenido
         if [ -d "release" ] && [ "$(ls -A release)" ]; then
+          # Limpiar el nombre de la versión para evitar caracteres problemáticos
+          VERSION="${{ steps.version.outputs.version }}"
+          CLEAN_VERSION=$(echo "$VERSION" | sed 's/refs\/heads\///g' | sed 's/refs\/tags\///g' | sed 's/\//-/g')
           cd release
-          zip -r ../event-ticketing-${{ steps.version.outputs.version }}.zip .
+          zip -r "../event-ticketing-${CLEAN_VERSION}.zip" .
         else
           echo "No release content to zip, skipping archive creation"
         fi
