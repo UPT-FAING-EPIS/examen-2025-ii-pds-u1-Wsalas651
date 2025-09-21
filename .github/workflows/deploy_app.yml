@@ -70,6 +70,17 @@ jobs:
         cache: 'npm'
         cache-dependency-path: src/Frontend/package.json
 
+    - name: Get API URL from Terraform
+      run: |
+        cd terraform
+        API_URL=$(terraform output -raw api_url 2>/dev/null || echo "")
+        if [[ -z "$API_URL" ]]; then
+          echo "Warning: API_URL not available from Terraform, using default"
+          API_URL="https://your-api-app.azurewebsites.net/api"
+        fi
+        echo "API_URL=${API_URL}" >> $GITHUB_ENV
+      shell: bash
+
     - name: Install Frontend Dependencies
       run: |
         cd src/Frontend
