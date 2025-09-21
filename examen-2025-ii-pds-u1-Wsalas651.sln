@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -9,6 +9,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "src\Core\Core.csproj", "{4114E4DC-A6BD-9F5D-EC82-1C3B16F50727}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\Infrastructure\Infrastructure.csproj", "{3D745DFE-AF9A-E111-755D-FD3FFF280728}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{83ABCE5F-4822-45B9-9500-CF91AF882DC1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTests", "UnitTests", "{149E469A-0996-4696-AD44-D36F738C256F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventTicketing.UnitTests", "tests\UnitTests\EventTicketing.UnitTests\EventTicketing.UnitTests.csproj", "{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{8F866437-98E9-469A-9A78-D27A61A4DE92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventTicketing.IntegrationTests", "tests\IntegrationTests\EventTicketing.IntegrationTests\EventTicketing.IntegrationTests.csproj", "{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,6 +38,14 @@ Global
 		{3D745DFE-AF9A-E111-755D-FD3FFF280728}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D745DFE-AF9A-E111-755D-FD3FFF280728}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D745DFE-AF9A-E111-755D-FD3FFF280728}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -36,6 +54,10 @@ Global
 		{CBAFC0F9-5B69-AE5B-776E-B650E010DF04} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{4114E4DC-A6BD-9F5D-EC82-1C3B16F50727} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{3D745DFE-AF9A-E111-755D-FD3FFF280728} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{149E469A-0996-4696-AD44-D36F738C256F} = {83ABCE5F-4822-45B9-9500-CF91AF882DC1}
+		{66FF82FE-23F7-49EB-BF92-EF2C6450BBEC} = {149E469A-0996-4696-AD44-D36F738C256F}
+		{8F866437-98E9-469A-9A78-D27A61A4DE92} = {83ABCE5F-4822-45B9-9500-CF91AF882DC1}
+		{95069902-1EEF-4CEF-9FF0-3C61CC1DFE0D} = {8F866437-98E9-469A-9A78-D27A61A4DE92}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {720C1686-42B3-452A-98DF-104080E3119D}

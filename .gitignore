@@ -15,6 +15,13 @@ build/
 dist/
 publish/
 
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
 # Archivos de caché y logs
 *.log
 *.swp
