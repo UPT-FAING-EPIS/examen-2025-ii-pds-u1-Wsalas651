@@ -48,9 +48,17 @@ jobs:
     - name: Build Frontend
       working-directory: src/Frontend
       run: |
-        npm install
-        npm run build
-        cp -r dist/* ../../../release/frontend/
+        # Verificar si existe package.json
+        if [ ! -f "package.json" ]; then
+          echo "package.json not found, skipping frontend build"
+          mkdir -p ../../release/frontend
+          echo "<h1>Frontend not configured</h1>" > ../../release/frontend/index.html
+        else
+          npm install
+          npm run build
+          mkdir -p ../../release/frontend
+          cp -r build/* ../../release/frontend/
+        fi
 
     - name: Get Version
       id: version

@@ -23,37 +23,38 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: |
-          5.0.x
           6.0.x
           8.0.x
 
-    - name: Install .NET tools
-      run: |
-        dotnet tool install --global PlantUmlClassDiagramGenerator --version 1.2.4
-
-    - name: Install PlantUML and Java
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y default-jre graphviz
+        sudo apt-get install -y default-jre graphviz libssl1.1 || sudo apt-get install -y default-jre graphviz libssl3
         wget http://sourceforge.net/projects/plantuml/files/plantuml.jar/download -O plantuml.jar
 
-    - name: Generate Class Diagram
+    - name: Install alternative diagram generator
+      run: |
+        dotnet tool install --global dotnet-depends --version 0.6.0
+
+    - name: Generate Class Diagram (Alternative Method)
       run: |
         # Crear directorio para diagramas
         mkdir -p docs/diagrams
         
-        # Generar diagrama PlantUML desde el código C#
-        ~/.dotnet/tools/puml-gen src/ docs/diagrams/class_diagram.puml -dir -public -createAssociation
+        # Usar dotnet-depends como alternativa más estable
+        ~/.dotnet/tools/dotnet-depends --framework net8.0 --output docs/diagrams/dependencies.dgml src/
         
-        # Generar imagen PNG desde PlantUML
-        java -jar plantuml.jar docs/diagrams/class_diagram.puml
-        
-        # Crear diagrama manual si el automático falla
-        cat > docs/diagrams/manual_class_diagram.puml << 'EOF'
-        @startuml EventTicketing_Classes
+        # Crear un diagrama PlantUML básico manualmente
+        cat > docs/diagrams/class_diagram.puml << 'EOF'
+        @startuml
         !theme plain
         
-        package "Domain" {
+        package "EventTicketing.API" {
+          class Program
+          class Startup
+        }
+        
+        package "EventTicketing.Core.Domain" {
           class Event {
             +Id: int
             +Name: string
@@ -62,7 +63,6 @@ jobs:
             +Location: string
             +MaxCapacity: int
             +AvailableTickets: int
-            +Price: decimal
           }
           
           class Ticket {
@@ -70,133 +70,63 @@ jobs:
             +EventId: int
             +UserId: string
             +PurchaseDate: DateTime
-            +Status: TicketStatus
+            +Price: decimal
           }
           
           class User {
             +Id: string
-            +Email: string
             +Name: string
-            +CreatedAt: DateTime
-          }
-          
-          enum TicketStatus {
-            Active
-            Cancelled
-            Used
+            +Email: string
           }
         }
         
-        package "Application" {
-          interface IEventService {
-            +GetAllEvents(): List<Event>
-            +GetEventById(id: int): Event
-            +CreateEvent(event: Event): Event
-            +UpdateEvent(event: Event): Event
-            +DeleteEvent(id: int): bool
-          }
-          
-          interface ITicketService {
-            +PurchaseTicket(eventId: int, userId: string): Ticket
-            +GetUserTickets(userId: string): List<Ticket>
-            +CancelTicket(ticketId: int): bool
-          }
-          
-          class EventService {
-            -eventRepository: IEventRepository
-            +GetAllEvents(): List<Event>
-            +GetEventById(id: int): Event
-            +CreateEvent(event: Event): Event
-            +UpdateEvent(event: Event): Event
-            +DeleteEvent(id: int): bool
-          }
-          
-          class TicketService {
-            -ticketRepository: ITicketRepository
-            -eventRepository: IEventRepository
-            +PurchaseTicket(eventId: int, userId: string): Ticket
-            +GetUserTickets(userId: string): List<Ticket>
-            +CancelTicket(ticketId: int): bool
-          }
+        package "EventTicketing.Core.Application" {
+          interface IEventService
+          interface ITicketService
+          interface IUserService
         }
         
-        package "Infrastructure" {
-          interface IEventRepository {
-            +GetAllAsync(): Task<List<Event>>
-            +GetByIdAsync(id: int): Task<Event>
-            +CreateAsync(event: Event): Task<Event>
-            +UpdateAsync(event: Event): Task<Event>
-            +DeleteAsync(id: int): Task<bool>
-          }
-          
-          interface ITicketRepository {
-            +GetByUserIdAsync(userId: string): Task<List<Ticket>>
-            +CreateAsync(ticket: Ticket): Task<Ticket>
-            +UpdateAsync(ticket: Ticket): Task<Ticket>
-          }
-          
-          class EventRepository {
-            -context: ApplicationDbContext
-            +GetAllAsync(): Task<List<Event>>
-            +GetByIdAsync(id: int): Task<Event>
-            +CreateAsync(event: Event): Task<Event>
-            +UpdateAsync(event: Event): Task<Event>
-            +DeleteAsync(id: int): Task<bool>
-          }
-          
-          class TicketRepository {
-            -context: ApplicationDbContext
-            +GetByUserIdAsync(userId: string): Task<List<Ticket>>
-            +CreateAsync(ticket: Ticket): Task<Ticket>
-            +UpdateAsync(ticket: Ticket): Task<Ticket>
-          }
+        package "EventTicketing.Infrastructure" {
+          class EventService
+          class TicketService
+          class UserService
+          class EventRepository
+          class TicketRepository
+          class UserRepository
         }
         
-        package "API" {
-          class EventsController {
-            -eventService: IEventService
-            +GetEvents(): ActionResult<List<Event>>
-            +GetEvent(id: int): ActionResult<Event>
-            +CreateEvent(event: Event): ActionResult<Event>
-            +UpdateEvent(id: int, event: Event): ActionResult
-            +DeleteEvent(id: int): ActionResult
-          }
-          
-          class TicketsController {
-            -ticketService: ITicketService
-            +PurchaseTicket(request: PurchaseTicketRequest): ActionResult<Ticket>
-            +GetUserTickets(userId: string): ActionResult<List<Ticket>>
-            +CancelTicket(id: int): ActionResult
-          }
-        }
-        
-        ' Relationships
         Event ||--o{ Ticket : "has many"
         User ||--o{ Ticket : "purchases"
-        Ticket }o--|| TicketStatus : "has status"
         
-        EventService ..|> IEventService : implements
-        TicketService ..|> ITicketService : implements
-        EventRepository ..|> IEventRepository : implements
-        TicketRepository ..|> ITicketRepository : implements
+        IEventService <|-- EventService
+        ITicketService <|-- TicketService
+        IUserService <|-- UserService
         
-        EventService --> IEventRepository : uses
-        TicketService --> ITicketRepository : uses
-        TicketService --> IEventRepository : uses
-        
-        EventsController --> IEventService : uses
-        TicketsController --> ITicketService : uses
+        EventService --> EventRepository
+        TicketService --> TicketRepository
+        UserService --> UserRepository
         
         @enduml
         EOF
         
-        # Generar imagen del diagrama manual
-        java -jar plantuml.jar docs/diagrams/manual_class_diagram.puml
+        # Generar imagen PNG desde PlantUML
+        java -jar plantuml.jar docs/diagrams/class_diagram.puml
 
-    - name: Upload diagram artifacts
-      uses: actions/upload-artifact@v4
+    - name: Upload Diagram Artifacts
+      uses: actions/upload-artifact@v3
       with:
         name: class-diagrams
         path: |
-          docs/diagrams/*.png
-          docs/diagrams/*.puml
+          docs/diagrams/
+        retention-days: 30
+
+    - name: Commit and Push Diagrams
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/diagrams/
+        git diff --staged --quiet || git commit -m "Update class diagrams [skip ci]"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
