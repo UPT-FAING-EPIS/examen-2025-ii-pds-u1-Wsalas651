@@ -1,62 +1,60 @@
 name: Deploy Application to Azure
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
+  workflow_run:
+    workflows: ["Deploy Infrastructure with Terraform"]
+    types:
+      - completed
     branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write  # Required for OIDC
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
+    # Solo ejecutar si el workflow de infraestructura fue exitoso
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Verify Required Secrets
-      run: |
-        if [[ -z "${{ secrets.JWT_SECRET_KEY }}" ]]; then
-          echo "Error: JWT_SECRET_KEY is not set"
-          exit 1
-        fi
-        if [[ -z "${{ secrets.SUPABASE_CONNECTION_STRING }}" ]]; then
-          echo "Error: SUPABASE_CONNECTION_STRING is not set"
-          exit 1
-        fi
-        echo "All required secrets are set"
-      shell: bash
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: "1.5.0"
+        terraform_wrapper: false  # Importante para obtener outputs
 
-    - name: Get API URL from Terraform
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Get Infrastructure Outputs
       run: |
         cd terraform
-        # Inicializar Terraform si es necesario
         terraform init
         
-        # Obtener API_URL de los outputs de Terraform
-        API_URL=$(terraform output -raw api_url 2>/dev/null || echo "")
+        # Obtener outputs de Terraform
+        API_URL=$(terraform output -raw api_url)
+        FRONTEND_URL=$(terraform output -raw frontend_url)
+        RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)
+        POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)
         
-        if [[ -z "$API_URL" ]]; then
-          echo "Warning: API_URL not available from Terraform outputs"
-          # Usar una URL por defecto basada en el resource group
-          RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name 2>/dev/null || echo "event-ticketing-rg")
-          API_URL="https://${RESOURCE_GROUP_NAME}-api.azurewebsites.net/api"
-          echo "Using default API_URL: $API_URL"
-        else
-          echo "Retrieved API_URL from Terraform: $API_URL"
-        fi
-        
+        # Establecer variables de entorno
         echo "API_URL=${API_URL}" >> $GITHUB_ENV
+        echo "FRONTEND_URL=${FRONTEND_URL}" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP_NAME=${RESOURCE_GROUP_NAME}" >> $GITHUB_ENV
+        echo "POSTGRES_SERVER_NAME=${POSTGRES_SERVER_NAME}" >> $GITHUB_ENV
+        
+        echo "Infrastructure outputs retrieved successfully"
+        echo "API URL: ${API_URL}"
+        echo "Frontend URL: ${FRONTEND_URL}"
       shell: bash
       env:
         ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -94,19 +92,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: src/Frontend/package.json
-
-    - name: Get API URL from Terraform
-      run: |
-        cd terraform
-        API_URL=$(terraform output -raw api_url 2>/dev/null || echo "")
-        if [[ -z "$API_URL" ]]; then
-          echo "Warning: API_URL not available from Terraform, using default"
-          API_URL="https://your-api-app.azurewebsites.net/api"
-        fi
-        echo "API_URL=${API_URL}" >> $GITHUB_ENV
-      shell: bash
 
     - name: Install Frontend Dependencies
       run: |
@@ -118,7 +103,7 @@ jobs:
         cd src/Frontend
         npm run build
       env:
-        REACT_APP_API_URL: ${{ secrets.API_URL }}
+        REACT_APP_API_URL: ${{ env.API_URL }}
         REACT_APP_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
