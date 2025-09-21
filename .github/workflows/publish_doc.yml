@@ -1,0 +1,420 @@
+name: Generate and Publish Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - '.github/workflows/publish_doc.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: src/Frontend/package-lock.json
+
+    - name: Install DocFX
+      run: |
+        wget https://github.com/dotnet/docfx/releases/download/v2.70.4/docfx-linux-x64-v2.70.4.zip
+        unzip docfx-linux-x64-v2.70.4.zip -d docfx
+        chmod +x docfx/docfx
+        echo "$GITHUB_WORKSPACE/docfx" >> $GITHUB_PATH
+
+    - name: Install documentation dependencies
+      run: |
+        npm install -g @compodoc/compodoc
+        npm install -g typedoc
+        pip install mkdocs mkdocs-material
+
+    - name: Restore .NET dependencies
+      run: dotnet restore
+
+    - name: Install Frontend dependencies
+      run: |
+        cd src/Frontend
+        npm install
+
+    - name: Create documentation structure
+      run: |
+        mkdir -p docs-output
+        mkdir -p docs-output/api
+        mkdir -p docs-output/frontend
+        mkdir -p docs-output/diagrams
+        mkdir -p docs-output/architecture
+
+    - name: Generate .NET API Documentation
+      run: |
+        # Crear archivo docfx.json
+        cat > docfx.json << 'EOF'
+        {
+          "metadata": [
+            {
+              "src": [
+                {
+                  "files": ["src/**/*.csproj"],
+                  "exclude": ["**/bin/**", "**/obj/**", "**/tests/**"]
+                }
+              ],
+              "dest": "docs-output/api",
+              "properties": {
+                "TargetFramework": "net7.0"
+              }
+            }
+          ],
+          "build": {
+            "content": [
+              {
+                "files": ["docs-output/api/*.yml", "docs-output/api/index.md"]
+              },
+              {
+                "files": ["*.md", "docs/*.md"],
+                "exclude": ["**/bin/**", "**/obj/**"]
+              }
+            ],
+            "resource": [
+              {
+                "files": ["images/**", "docs/images/**"]
+              }
+            ],
+            "dest": "docs-output",
+            "globalMetadataFiles": [],
+            "fileMetadataFiles": [],
+            "template": ["default"],
+            "postProcessors": [],
+            "markdownEngineName": "markdig",
+            "noLangKeyword": false,
+            "keepFileLink": false,
+            "cleanupCacheHistory": false,
+            "disableGitFeatures": false
+          }
+        }
+        EOF
+        
+        # Generar documentación
+        docfx metadata docfx.json
+        docfx build docfx.json
+
+    - name: Generate Frontend Documentation
+      run: |
+        cd src/Frontend
+        # Generar documentación de React/TypeScript
+        if [ -f "tsconfig.json" ]; then
+          npx typedoc --out ../../docs-output/frontend src --readme README.md
+        fi
+
+    - name: Generate Class Diagrams
+      run: |
+        # Ejecutar script de generación de diagramas
+        if [ -f "generate-class-diagram.ps1" ]; then
+          pwsh generate-class-diagram.ps1
+          cp diagrams/*.md docs-output/diagrams/ 2>/dev/null || true
+        fi
+
+    - name: Generate Infrastructure Diagrams
+      run: |
+        # Ejecutar script de generación de diagramas de infraestructura
+        if [ -f "generate-infra-diagram.ps1" ]; then
+          pwsh generate-infra-diagram.ps1
+          cp diagrams/*.md docs-output/diagrams/ 2>/dev/null || true
+        fi
+
+    - name: Generate Architecture Documentation
+      run: |
+        # Crear documentación de arquitectura
+        cat > docs-output/architecture/README.md << 'EOF'
+        # Arquitectura del Sistema - Event Ticketing
+
+        ## Descripción General
+        
+        La aplicación Event Ticketing es un sistema de venta de entradas para eventos que sigue una arquitectura de capas limpia (Clean Architecture) implementada en .NET 7 con React como frontend.
+
+        ## Estructura del Proyecto
+
+        ```
+        src/
+        ├── API/                 # Capa de Presentación (Controllers, DTOs)
+        ├── Core/               # Capa de Dominio y Aplicación
+        │   ├── Domain/         # Entidades, Value Objects, Enums
+        │   ├── Application/    # Casos de Uso, Servicios de Aplicación
+        │   └── Interfaces/     # Contratos e Interfaces
+        └── Infrastructure/     # Capa de Infraestructura
+            ├── Data/           # Contexto de Base de Datos
+            ├── Repositories/   # Implementación de Repositorios
+            └── Services/       # Servicios Externos
+        ```
+
+        ## Patrones de Diseño Implementados
+
+        ### 1. Repository Pattern
+        - Encapsula la lógica de acceso a datos
+        - Permite cambiar el proveedor de datos sin afectar la lógica de negocio
+        - Facilita las pruebas unitarias
+
+        ### 2. Service Layer Pattern
+        - Encapsula la lógica de negocio
+        - Proporciona una interfaz clara para los controladores
+        - Facilita la reutilización de código
+
+        ### 3. Dependency Injection
+        - Inversión de control para gestión de dependencias
+        - Mejora la testabilidad y flexibilidad
+        - Reduce el acoplamiento entre componentes
+
+        ### 4. DTO (Data Transfer Object)
+        - Transferencia de datos entre capas
+        - Control de la información expuesta
+        - Desacoplamiento entre capas
+
+        ## Principios SOLID
+
+        - **SRP**: Cada clase tiene una única responsabilidad
+        - **OCP**: Abierto para extensión, cerrado para modificación
+        - **LSP**: Las implementaciones pueden sustituir a sus interfaces
+        - **ISP**: Interfaces específicas y cohesivas
+        - **DIP**: Dependencia de abstracciones, no de concreciones
+
+        ## Tecnologías Utilizadas
+
+        ### Backend
+        - **.NET 7**: Framework principal
+        - **Entity Framework Core**: ORM para acceso a datos
+        - **PostgreSQL**: Base de datos principal
+        - **JWT**: Autenticación y autorización
+        - **Swagger**: Documentación de API
+
+        ### Frontend
+        - **React**: Biblioteca de interfaz de usuario
+        - **TypeScript**: Tipado estático para JavaScript
+        - **Axios**: Cliente HTTP para llamadas a API
+
+        ### Infraestructura
+        - **Azure App Service**: Hosting de la aplicación
+        - **Azure Storage**: Hosting del frontend estático
+        - **Azure PostgreSQL**: Base de datos en la nube
+        - **Terraform**: Infrastructure as Code
+        - **GitHub Actions**: CI/CD
+
+        ## Flujo de Datos
+
+        1. **Usuario** → Frontend (React)
+        2. **Frontend** → API Controllers
+        3. **Controllers** → Application Services
+        4. **Services** → Domain Entities
+        5. **Services** → Repositories
+        6. **Repositories** → Database
+
+        ## Seguridad
+
+        - **HTTPS**: Todas las comunicaciones encriptadas
+        - **JWT Tokens**: Autenticación stateless
+        - **CORS**: Configurado para dominios específicos
+        - **Input Validation**: Validación en múltiples capas
+        - **SQL Injection Prevention**: Uso de Entity Framework
+
+        ## Escalabilidad
+
+        - **Stateless Design**: Permite escalado horizontal
+        - **Connection Pooling**: Optimización de conexiones DB
+        - **Caching**: Headers de cache configurables
+        - **CDN**: Distribución de contenido estático
+
+        EOF
+
+        # Copiar documentación existente
+        if [ -d "docs" ]; then
+          cp -r docs/* docs-output/architecture/ 2>/dev/null || true
+        fi
+
+    - name: Create main documentation index
+      run: |
+        cat > docs-output/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Event Ticketing - Documentación</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    background-color: #f5f5f5;
+                }
+                .header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 2rem;
+                    border-radius: 10px;
+                    margin-bottom: 2rem;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 2.5rem;
+                }
+                .header p {
+                    margin: 0.5rem 0 0 0;
+                    opacity: 0.9;
+                }
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 2rem;
+                    margin-bottom: 2rem;
+                }
+                .card {
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    transition: transform 0.2s;
+                }
+                .card:hover {
+                    transform: translateY(-5px);
+                }
+                .card h3 {
+                    color: #667eea;
+                    margin-top: 0;
+                }
+                .card a {
+                    color: #667eea;
+                    text-decoration: none;
+                    font-weight: 500;
+                }
+                .card a:hover {
+                    text-decoration: underline;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 2rem;
+                    color: #666;
+                    border-top: 1px solid #ddd;
+                    margin-top: 2rem;
+                }
+                .badge {
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                    margin: 0.25rem;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🎫 Event Ticketing</h1>
+                <p>Documentación Técnica del Sistema</p>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>📚 API Documentation</h3>
+                    <p>Documentación completa de la API REST, endpoints, modelos de datos y ejemplos de uso.</p>
+                    <a href="./api/index.html">Ver Documentación API →</a>
+                    <br><br>
+                    <span class="badge">.NET 7</span>
+                    <span class="badge">REST API</span>
+                    <span class="badge">Swagger</span>
+                </div>
+
+                <div class="card">
+                    <h3>⚛️ Frontend Documentation</h3>
+                    <p>Documentación del frontend React, componentes, hooks y arquitectura de la interfaz de usuario.</p>
+                    <a href="./frontend/index.html">Ver Documentación Frontend →</a>
+                    <br><br>
+                    <span class="badge">React</span>
+                    <span class="badge">TypeScript</span>
+                    <span class="badge">Components</span>
+                </div>
+
+                <div class="card">
+                    <h3>🏗️ Architecture</h3>
+                    <p>Documentación de la arquitectura del sistema, patrones de diseño y principios SOLID implementados.</p>
+                    <a href="./architecture/README.html">Ver Arquitectura →</a>
+                    <br><br>
+                    <span class="badge">Clean Architecture</span>
+                    <span class="badge">SOLID</span>
+                    <span class="badge">DDD</span>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Diagrams</h3>
+                    <p>Diagramas de clases, infraestructura, secuencia y arquitectura del sistema.</p>
+                    <a href="./diagrams/">Ver Diagramas →</a>
+                    <br><br>
+                    <span class="badge">Mermaid</span>
+                    <span class="badge">UML</span>
+                    <span class="badge">Infrastructure</span>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Generado automáticamente con GitHub Actions</p>
+                <p>Última actualización: <span id="date"></span></p>
+            </div>
+
+            <script>
+                document.getElementById('date').textContent = new Date().toLocaleDateString('es-ES');
+            </script>
+        </body>
+        </html>
+        EOF
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './docs-output'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: generate-docs
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

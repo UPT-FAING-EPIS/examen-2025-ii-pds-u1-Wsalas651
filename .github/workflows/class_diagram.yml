@@ -1,242 +1,438 @@
-name: Generate Class Diagram
+name: Generación de Diagrama de Clases - Event Ticketing
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
     paths:
-      - 'src/**/*.cs'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'src/**/*.cs'
+      - 'src/**'
+      - 'database/**'
+      - '.github/workflows/class_diagram.yml'
   workflow_dispatch:
 
 jobs:
-  generate-class-diagram:
+  Generate-Class-Diagram:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - name: Generate Event Ticketing Class Diagram
+        run: |
+          mkdir -p diagrams
+          
+          cat > diagrams/class-diagram.md << 'EOF'
+          # Diagrama de Clases - Aplicación Event Ticketing
 
-    - name: Install PlantUML dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y default-jre graphviz
-        wget https://github.com/plantuml/plantuml/releases/download/v1.2024.0/plantuml-1.2024.0.jar -O plantuml.jar
+          Este diagrama muestra la estructura de clases para la aplicación de venta de entradas para eventos, incluyendo las entidades principales y sus relaciones.
 
-    - name: Create diagrams directory
-      run: mkdir -p docs/diagrams
+          ## Diagrama de Clases Principal
 
-    - name: Generate Class Diagram
-      run: |
-        cat > docs/diagrams/class_diagram.puml << 'EOF'
-        @startuml EventTicketing_ClassDiagram
-        !theme plain
-        skinparam backgroundColor white
-        skinparam classBackgroundColor lightblue
-        skinparam classBorderColor black
-        
-        package "EventTicketing.API" {
-          class Program {
-            +Main(args: string[]): void
-          }
-          
-          class Startup {
-            +ConfigureServices(services: IServiceCollection): void
-            +Configure(app: IApplicationBuilder): void
-          }
-          
-          class EventsController {
-            -eventService: IEventService
-            +GetEvents(): Task<IActionResult>
-            +GetEvent(id: int): Task<IActionResult>
-            +CreateEvent(event: Event): Task<IActionResult>
-          }
-          
-          class TicketsController {
-            -ticketService: ITicketService
-            +PurchaseTicket(request: PurchaseRequest): Task<IActionResult>
-            +GetUserTickets(userId: string): Task<IActionResult>
-          }
-        }
-        
-        package "EventTicketing.Core.Domain" {
-          class Event {
-            +Id: int
-            +Name: string
-            +Description: string
-            +Date: DateTime
-            +Location: string
-            +MaxCapacity: int
-            +AvailableTickets: int
-            +Price: decimal
-            +CreatedAt: DateTime
-            +UpdatedAt: DateTime
-          }
-          
-          class Ticket {
-            +Id: int
-            +EventId: int
-            +UserId: string
-            +SeatNumber: string
-            +PurchaseDate: DateTime
-            +Price: decimal
-            +Status: TicketStatus
-          }
-          
-          class User {
-            +Id: string
-            +Name: string
-            +Email: string
-            +CreatedAt: DateTime
-          }
-          
-          enum TicketStatus {
-            Reserved
-            Purchased
-            Cancelled
-          }
-        }
-        
-        package "EventTicketing.Core.Application" {
-          interface IEventService {
-            +GetAllEventsAsync(): Task<IEnumerable<Event>>
-            +GetEventByIdAsync(id: int): Task<Event>
-            +CreateEventAsync(event: Event): Task<Event>
-            +UpdateEventAsync(event: Event): Task<Event>
-            +DeleteEventAsync(id: int): Task<bool>
-          }
-          
-          interface ITicketService {
-            +PurchaseTicketAsync(request: PurchaseRequest): Task<Ticket>
-            +GetUserTicketsAsync(userId: string): Task<IEnumerable<Ticket>>
-            +CancelTicketAsync(ticketId: int): Task<bool>
-          }
-          
-          interface IUserService {
-            +GetUserByIdAsync(id: string): Task<User>
-            +CreateUserAsync(user: User): Task<User>
-            +UpdateUserAsync(user: User): Task<User>
-          }
-        }
-        
-        package "EventTicketing.Infrastructure" {
-          class EventService {
-            -eventRepository: IEventRepository
-            +GetAllEventsAsync(): Task<IEnumerable<Event>>
-            +GetEventByIdAsync(id: int): Task<Event>
-            +CreateEventAsync(event: Event): Task<Event>
-          }
-          
-          class TicketService {
-            -ticketRepository: ITicketRepository
-            +PurchaseTicketAsync(request: PurchaseRequest): Task<Ticket>
-            +GetUserTicketsAsync(userId: string): Task<IEnumerable<Ticket>>
-          }
-          
-          class UserService {
-            -userRepository: IUserRepository
-            +GetUserByIdAsync(id: string): Task<User>
-            +CreateUserAsync(user: User): Task<User>
-          }
-          
-          interface IEventRepository {
-            +GetAllAsync(): Task<IEnumerable<Event>>
-            +GetByIdAsync(id: int): Task<Event>
-            +CreateAsync(event: Event): Task<Event>
-          }
-          
-          interface ITicketRepository {
-            +CreateAsync(ticket: Ticket): Task<Ticket>
-            +GetByUserIdAsync(userId: string): Task<IEnumerable<Ticket>>
-          }
-          
-          interface IUserRepository {
-            +GetByIdAsync(id: string): Task<User>
-            +CreateAsync(user: User): Task<User>
-          }
-          
-          class EventRepository {
-            -context: ApplicationDbContext
-            +GetAllAsync(): Task<IEnumerable<Event>>
-            +GetByIdAsync(id: int): Task<Event>
-            +CreateAsync(event: Event): Task<Event>
-          }
-          
-          class TicketRepository {
-            -context: ApplicationDbContext
-            +CreateAsync(ticket: Ticket): Task<Ticket>
-            +GetByUserIdAsync(userId: string): Task<IEnumerable<Ticket>>
-          }
-          
-          class UserRepository {
-            -context: ApplicationDbContext
-            +GetByIdAsync(id: string): Task<User>
-            +CreateAsync(user: User): Task<User>
-          }
-        }
-        
-        ' Relationships
-        Event ||--o{ Ticket : "has many"
-        User ||--o{ Ticket : "purchases"
-        Ticket }o-- TicketStatus : "has status"
-        
-        ' Service implementations
-        IEventService <|-- EventService
-        ITicketService <|-- TicketService
-        IUserService <|-- UserService
-        
-        ' Repository implementations
-        IEventRepository <|-- EventRepository
-        ITicketRepository <|-- TicketRepository
-        IUserRepository <|-- UserRepository
-        
-        ' Service dependencies
-        EventService --> IEventRepository
-        TicketService --> ITicketRepository
-        UserService --> IUserRepository
-        
-        ' Controller dependencies
-        EventsController --> IEventService
-        TicketsController --> ITicketService
-        
-        @enduml
-        EOF
+          ```mermaid
+          classDiagram
+              class User {
+                  +Guid Id
+                  +string Email
+                  +string PasswordHash
+                  +string FirstName
+                  +string LastName
+                  +string PhoneNumber
+                  +DateTime RegistrationDate
+                  +UserRole Role
+                  +List~Ticket~ Tickets
+                  
+                  +UpdateProfile(firstName, lastName, phoneNumber)
+                  +ChangeRole(role)
+                  +GetFullName() string
+              }
 
-    - name: Generate PNG from PlantUML
-      run: |
-        java -jar plantuml.jar -tpng docs/diagrams/class_diagram.puml
-        java -jar plantuml.jar -tsvg docs/diagrams/class_diagram.puml
+              class Event {
+                  +Guid Id
+                  +string Name
+                  +string Description
+                  +DateTime Date
+                  +string Location
+                  +string Category
+                  +int TotalCapacity
+                  +decimal BasePrice
+                  +bool HasNumberedSeats
+                  +Guid OrganizerId
+                  +List~Ticket~ IssuedTickets
+                  +List~Seat~ Seats
+                  
+                  +UpdateDetails(name, description, location)
+                  +GetAvailableSeats() int
+                  +CalculatePrice(seatId) decimal
+              }
 
-    - name: List generated files
-      run: |
-        echo "Generated files:"
-        ls -la docs/diagrams/
+              class Ticket {
+                  +Guid Id
+                  +Guid EventId
+                  +Guid UserId
+                  +DateTime PurchaseDate
+                  +decimal Price
+                  +string Code
+                  +bool IsUsed
+                  +Guid? SeatId
+                  +string SeatRow
+                  +int SeatNumber
+                  +string SeatSection
+                  
+                  +MarkAsUsed()
+                  +GenerateQRCode() string
+                  +ValidateTicket() bool
+              }
 
-    - name: Upload Diagram Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: class-diagrams
-        path: docs/diagrams/
-        retention-days: 30
+              class Seat {
+                  +Guid Id
+                  +Guid EventId
+                  +string Row
+                  +int Number
+                  +string Section
+                  +decimal PriceMultiplier
+                  +bool IsReserved
+                  
+                  +Reserve()
+                  +Release()
+                  +CalculateFinalPrice(basePrice) decimal
+              }
 
-    - name: Commit and Push Diagrams
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add docs/diagrams/
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Update class diagrams [skip ci]"
-          git push
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              class UserRole {
+                  <<enumeration>>
+                  Customer
+                  Organizer
+                  Administrator
+              }
+
+              %% DTOs
+              class UserDto {
+                  +Guid Id
+                  +string Email
+                  +string FirstName
+                  +string LastName
+                  +string Role
+              }
+
+              class EventDto {
+                  +Guid Id
+                  +string Name
+                  +string Description
+                  +DateTime Date
+                  +string Location
+                  +string Category
+                  +decimal BasePrice
+                  +bool HasNumberedSeats
+                  +int AvailableSeats
+              }
+
+              class TicketDto {
+                  +Guid Id
+                  +Guid EventId
+                  +string EventName
+                  +DateTime EventDate
+                  +string EventLocation
+                  +DateTime PurchaseDate
+                  +decimal Price
+                  +string Code
+                  +bool IsUsed
+                  +SeatInfoDto SeatInfo
+              }
+
+              %% Repositories
+              class IUserRepository {
+                  <<interface>>
+                  +GetUserByEmailAsync(email) Task~User~
+                  +GetUsersByRoleAsync(role) Task~IEnumerable~User~~
+                  +IsEmailRegisteredAsync(email) Task~bool~
+                  +GetUserWithTicketsAsync(userId) Task~User~
+              }
+
+              class IEventRepository {
+                  <<interface>>
+                  +GetEventsAsync() Task~IEnumerable~Event~~
+                  +GetEventByIdAsync(id) Task~Event~
+                  +GetEventsByDateRangeAsync(start, end) Task~IEnumerable~Event~~
+                  +GetEventsByCategoryAsync(category) Task~IEnumerable~Event~~
+              }
+
+              class ITicketRepository {
+                  <<interface>>
+                  +GetTicketsByUserAsync(userId) Task~IEnumerable~Ticket~~
+                  +GetTicketsByEventAsync(eventId) Task~IEnumerable~Ticket~~
+                  +GetTicketByCodeAsync(code) Task~Ticket~
+              }
+
+              %% Services
+              class IUserService {
+                  <<interface>>
+                  +RegisterUserAsync(email, password, firstName, lastName, phoneNumber, role) Task~User~
+                  +AuthenticateAsync(email, password) Task~User~
+                  +UpdateProfileAsync(userId, firstName, lastName, phoneNumber) Task~User~
+                  +GetUserByIdAsync(userId) Task~User~
+              }
+
+              class IEventService {
+                  <<interface>>
+                  +CreateEventAsync(eventDto) Task~Event~
+                  +GetEventsAsync() Task~IEnumerable~Event~~
+                  +GetEventByIdAsync(eventId) Task~Event~
+                  +UpdateEventAsync(eventId, eventDto) Task~Event~
+                  +DeleteEventAsync(eventId) Task
+              }
+
+              class ITicketService {
+                  <<interface>>
+                  +PurchaseTicketAsync(userId, eventId, seatId) Task~Ticket~
+                  +GetUserTicketsAsync(userId) Task~IEnumerable~Ticket~~
+                  +ValidateTicketAsync(code) Task~bool~
+                  +GetTicketByIdAsync(ticketId) Task~Ticket~
+              }
+
+              %% Controllers
+              class AuthController {
+                  -IUserService _userService
+                  +Register(registerDto) Task~IActionResult~
+                  +Login(loginDto) Task~IActionResult~
+              }
+
+              class EventsController {
+                  -IEventService _eventService
+                  +GetEvents() Task~IActionResult~
+                  +GetEvent(id) Task~IActionResult~
+                  +CreateEvent(eventDto) Task~IActionResult~
+                  +UpdateEvent(id, eventDto) Task~IActionResult~
+                  +DeleteEvent(id) Task~IActionResult~
+              }
+
+              class TicketsController {
+                  -ITicketService _ticketService
+                  +PurchaseTicket(purchaseDto) Task~IActionResult~
+                  +GetUserTickets() Task~IActionResult~
+                  +ValidateTicket(code) Task~IActionResult~
+              }
+
+              %% Relaciones de Dominio
+              User ||--o{ Ticket : "compra"
+              User ||--|| UserRole : "tiene"
+              Event ||--o{ Ticket : "genera"
+              Event ||--o{ Seat : "contiene"
+              Seat ||--o| Ticket : "asignado_a"
+              
+              %% Relaciones de Servicios
+              AuthController --> IUserService
+              EventsController --> IEventService
+              TicketsController --> ITicketService
+              
+              %% Relaciones de Repositorios
+              IUserService --> IUserRepository
+              IEventService --> IEventRepository
+              ITicketService --> ITicketRepository
+          ```
+
+          ## Flujo de Operaciones Principales
+
+          ### 1. Registro y Autenticación de Usuarios
+          ```mermaid
+          sequenceDiagram
+              participant U as Usuario
+              participant AC as AuthController
+              participant US as UserService
+              participant UR as UserRepository
+              participant DB as Base de Datos
+
+              U->>AC: POST /api/auth/register
+              AC->>US: RegisterUserAsync(datos)
+              US->>UR: IsEmailRegisteredAsync(email)
+              UR->>DB: SELECT * FROM users WHERE email = ?
+              DB-->>UR: resultado
+              UR-->>US: false
+              US->>UR: AddAsync(newUser)
+              UR->>DB: INSERT INTO users
+              DB-->>UR: usuario creado
+              UR-->>US: User
+              US-->>AC: User
+              AC-->>U: 201 Created + JWT Token
+
+              Note over U,DB: Proceso de Login
+              U->>AC: POST /api/auth/login
+              AC->>US: AuthenticateAsync(email, password)
+              US->>UR: GetUserByEmailAsync(email)
+              UR->>DB: SELECT * FROM users WHERE email = ?
+              DB-->>UR: userData
+              UR-->>US: User
+              US->>US: VerifyPassword(password, hash)
+              US-->>AC: User (si es válido)
+              AC-->>U: 200 OK + JWT Token
+          ```
+
+          ### 2. Compra de Entradas
+          ```mermaid
+          sequenceDiagram
+              participant U as Usuario
+              participant TC as TicketsController
+              participant TS as TicketService
+              participant ES as EventService
+              participant TR as TicketRepository
+              participant DB as Base de Datos
+
+              U->>TC: POST /api/tickets/purchase
+              TC->>TS: PurchaseTicketAsync(userId, eventId, seatId)
+              TS->>ES: GetEventByIdAsync(eventId)
+              ES-->>TS: Event
+              TS->>TS: ValidateSeatAvailability(seatId)
+              TS->>TS: CalculatePrice(event, seat)
+              TS->>TR: AddAsync(newTicket)
+              TR->>DB: INSERT INTO tickets
+              DB-->>TR: ticket creado
+              TR-->>TS: Ticket
+              TS->>TS: UpdateSeatReservation(seatId)
+              TS-->>TC: Ticket
+              TC-->>U: 201 Created + TicketDto
+          ```
+
+          ### 3. Gestión de Eventos
+          ```mermaid
+          sequenceDiagram
+              participant O as Organizador
+              participant EC as EventsController
+              participant ES as EventService
+              participant ER as EventRepository
+              participant DB as Base de Datos
+
+              O->>EC: POST /api/events
+              EC->>ES: CreateEventAsync(eventDto)
+              ES->>ES: ValidateEventData(eventDto)
+              ES->>ER: AddAsync(newEvent)
+              ER->>DB: INSERT INTO events
+              DB-->>ER: evento creado
+              ER-->>ES: Event
+              ES->>ES: CreateSeatsForEvent(event)
+              ES-->>EC: Event
+              EC-->>O: 201 Created + EventDto
+          ```
+
+          ## Patrones de Diseño Aplicados
+
+          ### 1. Repository Pattern
+          - **IUserRepository / UserRepository**: Abstrae el acceso a datos de usuarios
+          - **IEventRepository / EventRepository**: Maneja las operaciones de eventos
+          - **ITicketRepository / TicketRepository**: Gestiona los tickets y compras
+          - **Repository<T>**: Implementación genérica base
+
+          ### 2. Service Layer Pattern
+          - **IUserService / UserService**: Lógica de negocio para usuarios
+          - **IEventService / EventService**: Operaciones de negocio para eventos
+          - **ITicketService / TicketService**: Procesos de compra y validación
+
+          ### 3. DTO Pattern
+          - **UserDto, EventDto, TicketDto**: Transferencia de datos entre capas
+          - **CreateEventDto, UpdateUserProfileDto**: DTOs específicos para operaciones
+
+          ### 4. Dependency Injection
+          - Inyección de dependencias en controladores y servicios
+          - Interfaces para desacoplar implementaciones
+
+          ### 5. Domain-Driven Design (DDD)
+          - Entidades de dominio con lógica de negocio encapsulada
+          - Validaciones de dominio en constructores y métodos
+
+          ## Principios SOLID Aplicados
+
+          ✅ **Single Responsibility**: Cada clase tiene una responsabilidad específica
+          - User: Gestión de datos de usuario
+          - Event: Lógica de eventos
+          - Ticket: Operaciones de entradas
+          - Seat: Manejo de asientos
+
+          ✅ **Open/Closed**: Extensible para nuevos tipos de eventos y métodos de pago
+          - Interfaces permiten nuevas implementaciones
+          - Enum UserRole permite agregar nuevos roles
+
+          ✅ **Liskov Substitution**: Las implementaciones pueden sustituir interfaces
+          - Repository<T> puede ser sustituido por implementaciones específicas
+          - Services implementan interfaces claramente definidas
+
+          ✅ **Interface Segregation**: Interfaces específicas por funcionalidad
+          - IUserRepository, IEventRepository, ITicketRepository
+          - IUserService, IEventService, ITicketService
+
+          ✅ **Dependency Inversion**: Dependencias a través de abstracciones
+          - Controllers dependen de interfaces de servicios
+          - Services dependen de interfaces de repositorios
+
+          ## Arquitectura de Capas
+
+          ```mermaid
+          graph TB
+              subgraph "Presentation Layer"
+                  REACT["React Frontend"]
+                  API["API Controllers"]
+              end
+
+              subgraph "Application Layer"
+                  AUTH_SVC["User Service"]
+                  EVENT_SVC["Event Service"]
+                  TICKET_SVC["Ticket Service"]
+              end
+
+              subgraph "Domain Layer"
+                  USER["User Entity"]
+                  EVENT["Event Entity"]
+                  TICKET["Ticket Entity"]
+                  SEAT["Seat Entity"]
+              end
+
+              subgraph "Infrastructure Layer"
+                  USER_REPO["User Repository"]
+                  EVENT_REPO["Event Repository"]
+                  TICKET_REPO["Ticket Repository"]
+                  EF_CONTEXT["EF Core Context"]
+              end
+
+              subgraph "Database Layer"
+                  SUPABASE["Supabase PostgreSQL"]
+              end
+
+              %% Connections
+              REACT --> API
+              API --> AUTH_SVC
+              API --> EVENT_SVC
+              API --> TICKET_SVC
+              
+              AUTH_SVC --> USER
+              EVENT_SVC --> EVENT
+              TICKET_SVC --> TICKET
+              TICKET_SVC --> SEAT
+              
+              AUTH_SVC --> USER_REPO
+              EVENT_SVC --> EVENT_REPO
+              TICKET_SVC --> TICKET_REPO
+              
+              USER_REPO --> EF_CONTEXT
+              EVENT_REPO --> EF_CONTEXT
+              TICKET_REPO --> EF_CONTEXT
+              
+              EF_CONTEXT --> SUPABASE
+          ```
+
+          ---
+          *Generado automáticamente el $(date)*
+          EOF
+
+      - name: Upload Class Diagram
+        uses: actions/upload-artifact@v4
+        with:
+          name: class-diagram
+          path: diagrams/
+
+      - name: Commit and Push Diagram (if on main)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add diagrams/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📊 Update class diagram [skip ci]"
+            git push
+          fi
+        continue-on-error: true
