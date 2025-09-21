@@ -197,12 +197,3 @@ jobs:
         path: |
           docs/diagrams/*.png
           docs/diagrams/*.puml
-
-    - name: Commit diagrams to repository
-      if: github.ref == 'refs/heads/main'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add docs/diagrams/
-        git diff --staged --quiet || git commit -m "Update class diagrams [skip ci]"
-        git push

@@ -74,14 +74,3 @@ jobs:
       with:
         name: infrastructure-diagram
         path: terraform/event_ticketing_infrastructure.png
-
-    - name: Commit diagram to repository
-      if: github.ref == 'refs/heads/main'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        mkdir -p docs/diagrams
-        cp terraform/event_ticketing_infrastructure.png docs/diagrams/
-        git add docs/diagrams/event_ticketing_infrastructure.png
-        git diff --staged --quiet || git commit -m "Update infrastructure diagram [skip ci]"
-        git push
