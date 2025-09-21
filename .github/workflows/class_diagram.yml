@@ -191,7 +191,7 @@ jobs:
         java -jar plantuml.jar docs/diagrams/manual_class_diagram.puml
 
     - name: Upload diagram artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: class-diagrams
         path: |

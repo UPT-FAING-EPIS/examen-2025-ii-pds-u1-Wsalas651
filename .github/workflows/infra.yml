@@ -34,7 +34,13 @@ jobs:
       with:
         terraform_version: 1.3.0
 
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    # Login to Azure using Service Principal
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Initialize a new or existing Terraform working directory
     - name: Terraform Init
       run: terraform init
       env:
@@ -104,17 +110,6 @@ jobs:
         pa_token: ${{ secrets.GH_PA_TOKEN }}
 
 
-### **2. Regenerar el Client Secret en Azure**
-1. Ve al **Azure Portal** → **Azure Active Directory** → **App registrations**
-2. Busca tu aplicación
-3. Ve a **Certificates & secrets**
-4. **Elimina** el secreto actual
-5. **Crea** un nuevo secreto
-6. **Copia el VALOR** (no el ID) del secreto
-7. **Actualiza** el secreto `AZURE_CREDENTIALS` en GitHub
-
-### **3. Migrar a OIDC (Recomendado)**
-Azure recomienda usar OIDC en lugar de secretos <mcreference link="https://github.com/azure/login#configure-a-service-principal-with-a-federated-credential-to-use-oidc-based-authentication" index="0">0</mcreference>:
 ```yaml
     - name: Login to Azure
       uses: azure/login@v1
