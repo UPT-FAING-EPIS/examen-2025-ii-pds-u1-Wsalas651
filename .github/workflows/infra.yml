@@ -82,11 +82,26 @@ jobs:
     # Export Terraform outputs as GitHub environment variables
     - name: Export Terraform Outputs
       if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      working-directory: ./terraform
       run: |
-        RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name)
-        API_URL=$(terraform output -raw api_url)
-        FRONTEND_URL=$(terraform output -raw frontend_url)
-        POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name)
+        # Verificar que terraform esté inicializado
+        if [ ! -f ".terraform/terraform.tfstate" ]; then
+          echo "Terraform not initialized, skipping output export"
+          exit 0
+        fi
+        
+        # Verificar que existan outputs
+        if ! terraform output > /dev/null 2>&1; then
+          echo "No terraform outputs available, skipping export"
+          exit 0
+        fi
+        
+        # Exportar outputs si existen
+        RESOURCE_GROUP_NAME=$(terraform output -raw resource_group_name 2>/dev/null || echo "")
+        API_URL=$(terraform output -raw api_url 2>/dev/null || echo "")
+        FRONTEND_URL=$(terraform output -raw frontend_url 2>/dev/null || echo "")
+        POSTGRES_SERVER_NAME=$(terraform output -raw postgres_server_name 2>/dev/null || echo "")
+        
         echo "RESOURCE_GROUP_NAME=${RESOURCE_GROUP_NAME}" >> $GITHUB_ENV
         echo "API_URL=${API_URL}" >> $GITHUB_ENV
         echo "FRONTEND_URL=${FRONTEND_URL}" >> $GITHUB_ENV
