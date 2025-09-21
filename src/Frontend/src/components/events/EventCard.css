@@ -1,0 +1,138 @@
+/* Estilos para las tarjetas de eventos */
+.event-card {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Imagen del evento */
+.event-image {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.event-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.event-card:hover .event-image img {
+  transform: scale(1.05);
+}
+
+/* Categoría del evento */
+.event-category {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-top-right-radius: 8px;
+}
+
+/* Badges para eventos destacados o próximos */
+.event-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.event-badge.featured {
+  background-color: var(--warning-color);
+  color: #333;
+}
+
+.event-badge.soon {
+  background-color: var(--success-color);
+  color: white;
+}
+
+/* Contenido de la tarjeta */
+.event-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.event-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-color-dark);
+  line-height: 1.3;
+}
+
+/* Detalles del evento */
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.event-detail {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--text-color-light);
+}
+
+.event-detail i {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+  width: 16px;
+  text-align: center;
+}
+
+/* Descripción del evento */
+.event-description {
+  font-size: 0.9rem;
+  color: var(--text-color-light);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+/* Acciones */
+.event-actions {
+  margin-top: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .event-image {
+    height: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-title {
+    font-size: 1.1rem;
+  }
+  
+  .event-content {
+    padding: 1rem;
+  }
+}

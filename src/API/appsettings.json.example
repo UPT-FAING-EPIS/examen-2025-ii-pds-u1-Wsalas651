@@ -1,0 +1,19 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "#{SUPABASE_CONNECTION_STRING}#"
+  },
+  "Jwt": {
+    "Key": "#{JWT_SECRET_KEY}#",
+    "Issuer": "EventTicketing",
+    "Audience": "EventTicketingUsers",
+    "ExpiryMinutes": 60
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}
